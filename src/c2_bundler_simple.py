@@ -47,8 +47,6 @@ def create_bundled_payload(
         output_name = "c2_payload"
         if platform == "windows":
             cmd = [
-                sys.executable,
-                "-m",
                 "pyinstaller",
                 "--onefile",
                 "--windowed",
@@ -56,7 +54,7 @@ def create_bundled_payload(
                 str(dist_dir),
                 "--specpath",
                 str(dist_dir / "specs"),
-                "--buildpath",
+                "--workpath",
                 str(dist_dir / "build"),
                 "--name",
                 output_name,
@@ -64,15 +62,13 @@ def create_bundled_payload(
             ]
         else:
             cmd = [
-                sys.executable,
-                "-m",
                 "pyinstaller",
                 "--onefile",
                 "--distpath",
                 str(dist_dir),
                 "--specpath",
                 str(dist_dir / "specs"),
-                "--buildpath",
+                "--workpath",
                 str(dist_dir / "build"),
                 "--name",
                 output_name,
