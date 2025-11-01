@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Payload - Pupy C2
+Payload - Pupy C23
 Listener: 192.168.1.40:4444
 """
 
