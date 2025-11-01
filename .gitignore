@@ -42,8 +42,8 @@ env/
 *.app
 *.bin
 *.elf
-payload_*.py
 payload_output/
+# Note: payload.py is NOT ignored - we want to track it for GitHub Actions!
 
 # Output directories
 Pupy_Outputs/
