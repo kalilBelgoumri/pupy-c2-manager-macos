@@ -416,11 +416,16 @@ hdiutil create -volname "Pupy C2 Manager" \
 
 ---
 
-## 🚀 Améliorations Futures
+## 🚀 Améliorations Implémentées (v2.1)
+
+- ✅ **Build Windows GitHub intégré** : Bouton "☁️ Build for Windows" dans le Bundler
+- ✅ **Filtrage victimes** : Recherche par hostname, platform, user
+- ✅ **Status listener visuel** : Indicateur 🟢/⚫ en temps réel
+- ✅ **Statistiques clients** : Compteur de clients visibles/total
+
+## 🔮 Améliorations Futures
 
 - [ ] Support SSL/TLS pour communication chiffrée
-- [ ] Multi-listener simultanés
-- [ ] Filtrage avancé des victimes
 - [ ] Persistence automatique
 - [ ] Module de lateral movement
 - [ ] Interface web optionnelle
