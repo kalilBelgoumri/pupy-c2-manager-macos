@@ -107,12 +107,10 @@ class C2Bundler:
             if resources_files:
                 # On ajoute le dossier entier via --add-data
                 # CRITICAL: PyInstaller syntax is --add-data=SOURCE:DEST (with equals sign!)
-                # Separator: Windows uses ';', Unix uses ':'
-                # But when compiling ON macOS, PyInstaller expects ':' syntax regardless of target
-                # The compiled Windows exe will extract resources correctly at runtime
+                # Separator depends on the OS running PyInstaller (not target platform)
+                # Windows expects ';' while Unix-likes expect ':'
                 resources_path = str(self.resources_dir)
-                # Always use ':' when running PyInstaller on Unix (macOS/Linux)
-                separator = ":"
+                separator = ";" if os.name == "nt" else ":"
                 add_data_arg = f"--add-data={resources_path}{separator}resources"
                 cmd.append(add_data_arg)
                 print(f"[*] Adding resources folder: {self.resources_dir}")
