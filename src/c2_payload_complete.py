@@ -291,15 +291,15 @@ if __name__ == '__main__':
         return f"""
 import base64
 code = base64.b64decode('{encoded}').decode()
-exec(code)
+exec(code, {{}})
 """
 
     def obfuscate_level_2(self, code: str) -> str:
         """Niveau 2: XOR + Base64 + Délais"""
         key = random.randint(1, 255)
-        code_bytes = code.encode("utf-8")
+        code_bytes = code.encode('utf-8')
         xored_bytes = bytes(b ^ key for b in code_bytes)
-        encoded = base64.b64encode(xored_bytes).decode("ascii")
+        encoded = base64.b64encode(xored_bytes).decode('ascii')
         delay = random.randint(1, 3)
 
         return f"""
@@ -308,7 +308,7 @@ time.sleep({delay})
 key = {key}
 xored = base64.b64decode('{encoded}')
 code = ''.join(chr(b ^ key) for b in xored)
-exec(code)
+exec(code, {{}})
 """
 
     def obfuscate_level_3(self, code: str) -> str:
@@ -335,7 +335,7 @@ time.sleep({delay})
 key = {key}
 xored = base64.b64decode('{encoded}')
 code = ''.join(chr(b ^ key) for b in xored)
-exec(code)
+exec(code, {{}})
 """
 
     def obfuscate_level_4(self, code: str) -> str:
@@ -355,7 +355,7 @@ time.sleep({delay})
 key = {key}
 xored = base64.b64decode('{encoded}')
 code = ''.join(chr(b ^ key) for b in xored)
-exec(code)
+exec(code, {{}})
 """
 
     def obfuscate_level_5(self, code: str) -> str:
@@ -382,7 +382,7 @@ time.sleep({delay})
 key = {key}
 xored = base64.b64decode('{encoded}')
 code = ''.join(chr(b ^ key) for b in xored)
-exec(code)
+exec(code, {{}})
 """
 
     def generate(self) -> str:
