@@ -99,13 +99,24 @@ class C2Client:
                 self.debug_log("[RECV] Empty data received")
                 return None
             result = json.loads(data)
-            self.debug_log("[RECV] Received: {0}".format(str(result)[:100]))
+            self.debug_log("[RECV] Received type: {0}, content: {1}".format(type(result).__name__, str(result)[:200]))
+            
+            # If result is a list, take the first element (listener might send as list)
+            if isinstance(result, list):
+                self.debug_log("[RECV] Received a list with {0} items, using first element".format(len(result)))
+                if result:
+                    result = result[0]
+                else:
+                    return None
+            
             return result
         except json.JSONDecodeError as e:
             self.debug_log("[RECV] JSON decode error: {0}, data was: {1}".format(str(e), str(data)[:100]))
             return None
         except Exception as e:
             self.debug_log("[RECV] Error: {0}".format(str(e)))
+            import traceback
+            self.debug_log("[RECV] Traceback: {0}".format(traceback.format_exc()))
             return None
     
     def get_system_info(self):
