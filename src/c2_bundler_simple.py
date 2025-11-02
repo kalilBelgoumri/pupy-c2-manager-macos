@@ -107,7 +107,8 @@ class C2Bundler:
             if resources_files:
                 # On ajoute le dossier entier via --add-data
                 # Important: Sur Windows, utiliser ; comme séparateur, sur Unix utiliser :
-                separator = ";" if sys.platform.startswith("win") else ":"
+                # CRITICAL: Use 'platform' parameter, NOT sys.platform (we compile on macOS for Windows!)
+                separator = ";" if platform == "windows" else ":"
                 resources_path = str(self.resources_dir)
                 cmd.extend(["--add-data", f"{resources_path}{separator}resources"])
                 print(f"[*] Adding resources folder: {self.resources_dir}")
