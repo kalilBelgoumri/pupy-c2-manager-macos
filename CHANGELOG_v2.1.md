@@ -1,5 +1,17 @@
 # 🎉 Récapitulatif Complet v2.1
 
+## 🔧 Correctifs Récents (2 nov 2025)
+
+### Unicode Encoding Fix
+**Problème** : Erreur GitHub Actions - `'charmap' codec can't encode character '\u2705'`  
+**Cause** : Emojis (✅) incompatibles avec l'encodage Windows `charmap`  
+**Solution** :
+- ✅ Remplacé tous les emojis par du texte ASCII dans `c2_bundler_simple.py`
+- ✅ `[+] Status: READY FOR DEPLOYMENT` au lieu de `✅ READY FOR DEPLOYMENT`
+- ✅ Build GitHub Actions maintenant fonctionnel sur Windows
+
+---
+
 ## ✅ Problèmes Résolus
 
 ### 1. ❌ Boutons Victims Manquants
