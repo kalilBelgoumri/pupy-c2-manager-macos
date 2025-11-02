@@ -4,6 +4,53 @@
 
 ---
 
+## 🔥 GUIDE DE TEST RAPIDE (Après correctifs)
+
+### Étape 1: Vérifier la configuration
+
+1. **Lance l'app** : `python3 src/main.py`
+2. **Onglet Settings** :
+   - Listener IP : `192.168.1.40` (ton IP locale, PAS 0.0.0.0 !)
+   - Listener Port : `4444`
+   - Sauvegarde
+
+### Étape 2: Démarrer le listener
+
+1. **Onglet Clients** :
+   - Clique **"Start Listener"**
+   - Status doit afficher : 🟢 **Listening on 192.168.1.40:4444**
+
+### Étape 3: Build GitHub avec bonne IP
+
+1. **Onglet Bundler** :
+   - Listener IP : `192.168.1.40` (IMPORTANT !)
+   - Listener Port : `4444`
+   - Obfuscation : **Level 2** (pour tests rapides, délai 1-3s)
+   - Clique **"☁️ Build Windows (GitHub)"**
+
+2. **GitHub Actions** :
+   - Va sur https://github.com/kalilBelgoumri/pupy-c2-manager-macos/actions
+   - Attends la compilation (~2 min)
+   - Télécharge l'artifact `c2-payload-windows`
+
+### Étape 4: Test sur Windows
+
+1. **Transfère** le `c2_payload.exe` sur ta machine Windows
+2. **Double-clique** sur le .exe
+3. **Attends 3-8 secondes** (obfuscation niveau 2)
+4. **Vérifie l'app macOS** → Onglet Clients → Tu devrais voir la victime apparaître !
+
+### ⚠️ Problèmes fréquents
+
+| Symptôme | Cause | Solution |
+|----------|-------|----------|
+| Pas de connexion | IP = 0.0.0.0 | Utilise ton IP locale (192.168.1.X) |
+| Fenêtre se ferme | Niveau 5 = délai 60-300s | Utilise niveau 2 pour tests |
+| Pas d'erreur visible | --windowed actif | Désactivé maintenant pour debug |
+| Firewall bloque | Port 4444 fermé | Vérifie firewall macOS et Windows |
+
+---
+
 ## 📋 Pre-Installation Checklist
 
 Before you start, ensure you have:
