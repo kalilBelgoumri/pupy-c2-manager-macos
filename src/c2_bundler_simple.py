@@ -347,9 +347,7 @@ class C2Bundler:
             "",
             "# PyInstaller --add-data TARGET:resources puts files in _MEIPASS/resources/",
             "# But sometimes it just puts them at root, so check both",
-            'original_app_resources = bundle_dir / "resources" / "'
-            + original_filename
-            + '"',
+            'original_app_resources = bundle_dir / "resources" / "' + original_filename + '"',
             'original_app_root = bundle_dir / "' + original_filename + '"',
             "",
             "def _log(msg):",
