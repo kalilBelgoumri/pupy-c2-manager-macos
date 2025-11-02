@@ -1,10 +1,10 @@
 # 🚀 Pupy C2 Manager - macOS Application
 
-**Complete Professional C2 Bundler, Anti-AV Manager, and Victim Controller for macOS Tahoe**
+**Complete Professional C2 Framework with Payload Bundler & Victim Controller**
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
-![Platform](https://img.shields.io/badge/platform-macOS%20Tahoe-orange)
-![Python](https://img.shields.io/badge/python-3.8%2B-green)
+![Version](https://img.shields.io/badge/version-2.0.0-blue)
+![Platform](https://img.shields.io/badge/platform-macOS%20arm64-orange)
+![Python](https://img.shields.io/badge/python-3.12%2B-green)
 ![License](https://img.shields.io/badge/license-Authorized%20Use%20Only-red)
 
 ---
@@ -12,22 +12,22 @@
 ## ✨ Features
 
 ### 📦 **Bundler Module**
-- Bundle ANY third-party application (.py or .exe)
-- Seamless Pupy payload injection
-- Automatic compilation to native macOS executables
-- Multi-level obfuscation (Low, Medium, High, Extreme)
-- Integrated ClamAV anti-AV testing
-- Real-time bundling progress
+- **Standalone Payloads** : Génération d'exécutables C2 autonomes
+- **🆕 Patch Mode** : Injection dans des applications existantes (ChromeSetup.exe, etc.)
+- **5 niveaux d'obfuscation** : De basique à EXTREME (anti-analysis)
+- **Cross-platform** : Support Windows/macOS/Linux
+- **PyInstaller integration** : Compilation automatique en natif
+- **GitHub Actions** : Build Windows PE automatisé
 
 ### 👥 **Victim Management**
-- Real-time connected victim list
-- Live victim information display
-- Command execution interface
-- Interactive shell support
-- Process migration/injection
-- Screenshot capture
-- File upload/download capabilities
-- Keylogger management
+- **Listener TCP** : Port configurable, multi-clients
+- **Alertes temps réel** : Popup automatique lors de nouvelles connexions
+- **Actions rapides** : Boutons whoami, hostname, ipconfig, systeminfo, etc.
+- **Screenshots** : Capture d'écran distante avec sauvegarde auto
+- **Keylogger** : Enregistrement des frappes (durée configurable)
+- **Transferts de fichiers** : Download/Upload avec chemins personnalisés
+- **Shell interactif** : Exécution de commandes système
+- **Artifacts auto** : Stockage dans `~/pupy_artifacts/` (downloads, screenshots, keylogs)
 
 ### ⚙️ **Advanced Configuration**
 - Customizable listener IP/port
@@ -100,171 +100,190 @@ hdiutil create -volname "Pupy C2 Manager" \
 
 ---
 
-## 🚀 Usage
+## 🚀 Utilisation
 
-### Starting the Application
+### Démarrage
 
-**From source:**
+**Depuis les sources :**
 ```bash
+cd /Users/kalilbelgoumri/Desktop/pupy-c2-manager-macos
 python3 src/main.py
 ```
 
-**From .app bundle:**
+**Avec l'environnement virtuel :**
 ```bash
-open dist/Pupy\ C2\ Manager.app
-```
-
-**From Applications folder:**
-Double-click "Pupy C2 Manager" in Applications
-
----
-
-## 📱 Application Tabs
-
-### Tab 1: 📦 Bundler
-**Create weaponized applications**
-
-1. Click "Browse" to select your application
-2. Configure:
-   - Output name
-   - Listener IP (default: 0.0.0.0)
-   - Listener port (default: 4444)
-   - Obfuscation level (0-5)
-3. Click "🚀 Bundle & Compile"
-4. Wait for completion
-5. Optional: Click "✅ Validate Anti-AV" to test with ClamAV
-
-**Output files:**
-- `MyApp_xyz.exe` - Final bundled executable
-- `payload_xyz.dll` - Pupy payload
-- `metadata_xyz.json` - Configuration metadata
-
-### Tab 2: 👥 Victims
-**Manage infected machines**
-
-- **Connected Victims List**: Real-time victim display
-- **Victim Info**: Selected victim details
-- **Command Execution**: Run commands on victim
-- **Actions**:
-  - 🔄 Refresh: Update victim list
-  - 🔌 Open Shell: Interactive shell
-  - 💾 Migrate Process: Move payload to different process
-  - ❌ Disconnect: Disconnect victim
-
-**Available Commands:**
-- `shell` - Interactive shell
-- `screenshot` - Capture screen
-- `whoami` - Current user
-- `ls` - List files
-- `cd` - Change directory
-- `download` - Download files
-- `upload` - Upload files
-- `getprivs` - Show privileges
-
-### Tab 3: 📋 Logs
-**Monitor all operations**
-
-- Real-time operation logging
-- Command execution history
-- Error messages and diagnostics
-- 🗑️ Clear logs
-- 💾 Export logs to file
-
-### Tab 4: ⚙️ Settings
-**Configure application**
-
-**Pupy Configuration:**
-- Pupy directory path
-- Browse to Pupy installation
-
-**Listener Configuration:**
-- Listener IP address
-- Listener port number
-
-**Output Configuration:**
-- Default output directory
-
-**Bundler Configuration:**
-- Obfuscation level (0-5)
-- Auto-test with ClamAV
-
----
-
-## 🎯 Complete Workflow Example
-
-### 1. Setup Phase
-```
-1. Open Pupy C2 Manager
-2. Go to Settings tab
-3. Set Pupy path: /Users/user/Desktop/Projet_dev/pupy
-4. Set listener IP: 192.168.1.1 (your attacking machine)
-5. Set listener port: 4444
-6. Click "💾 Save Settings"
-```
-
-### 2. Bundling Phase
-```
-1. Go to Bundler tab
-2. Click "Browse" and select your app (e.g., mon_app.py)
-3. Set output name: "MyApp"
-4. Set obfuscation: "High"
-5. Check "Auto-test with ClamAV"
-6. Click "🚀 Bundle & Compile"
-7. Wait for completion (3-5 minutes)
-```
-
-### 3. Testing Phase
-```
-1. Click "✅ Validate Anti-AV"
-2. Wait for ClamAV results
-3. Check Logs tab for results
-4. Click "📁 Open Output" to see files
-```
-
-### 4. Deployment Phase
-```
-1. Copy MyApp_xyz.exe from output
-2. Deploy to target machine
-3. Execute on target
-4. Go to Victims tab
-5. See victim appear in list
-```
-
-### 5. Control Phase
-```
-1. Select victim in table
-2. Type command in input field
-3. Click "Execute"
-4. See output in terminal
-5. Use available commands to control machine
+source /Users/kalilbelgoumri/Desktop/pupy_env/bin/activate
+python src/main.py
 ```
 
 ---
 
-## 🛡️ Anti-AV Features Integrated
+## 📱 Onglets de l'Application
 
-| Technique | Status |
+### 🔨 Onglet 1 : Bundler
+**Créer des payloads C2**
+
+#### Mode Standalone
+1. Configurer Listener IP/Port
+2. Choisir le niveau d'obfuscation (1-5)
+3. Cliquer sur **Build Payload**
+
+#### 🆕 Mode Patch
+1. Configurer Listener IP/Port
+2. Choisir le niveau d'obfuscation (1-5)
+3. ✅ **Cocher "Patch Mode"**
+4. Cliquer sur **Browse** → Sélectionner l'app à patcher (ex: `ChromeSetup.exe`)
+5. Cliquer sur **Build Payload**
+
+**Fichiers de sortie :**
+- `dist/c2_payload` ou `dist/c2_payload.exe` (standalone)
+- `dist/[NomOriginal].exe` (patch mode)
+
+📚 **Documentation complète** : Voir [PATCH_MODE.md](PATCH_MODE.md)
+
+### 👥 Onglet 2 : Client (Victims)
+**Contrôler les machines infectées**
+
+#### Démarrer le Listener
+1. Configurer le port (défaut: 4444)
+2. Cliquer sur **▶️ Start Listener**
+3. Attendre les connexions (popup automatique)
+
+#### Actions Disponibles
+
+**🧰 Quick Actions (boutons):**
+- Whoami
+- Hostname
+- IP Config
+- System Info
+- List Processes
+- Client Info
+
+**⚙️ Commands:**
+- **📷 Screenshot** : Capture d'écran (sauvegardé dans `~/pupy_artifacts/screenshots/`)
+- **⬇️ Download** : Télécharger un fichier depuis la victime
+- **⬆️ Upload** : Envoyer un fichier vers la victime
+- **⌨️ Keylogger** : Enregistrer les frappes (durée configurable)
+- **▶️ Execute** : Commande shell personnalisée
+
+### 📋 Onglet 3 : Logs
+**Surveiller toutes les opérations**
+
+- Logs temps réel de toutes les actions
+- Historique des commandes exécutées
+- Messages d'erreur et diagnostics
+- 🗑️ Effacer les logs
+- 💾 Exporter vers fichier
+
+### ⚙️ Onglet 4 : Settings
+**Configurer l'application**
+
+- **GitHub Workflow** : Informations sur la compilation Windows PE
+- **Build automatique** : Via GitHub Actions pour obtenir un `.exe` Windows
+- Paramètres de configuration persistants
+
+---
+
+## 🎯 Workflow Complet
+
+### 1️⃣ Phase Listener
+```
+1. Ouvrir l'onglet Client
+2. Configurer le port (défaut: 4444)
+3. Cliquer sur "▶️ Start Listener"
+4. Listener actif → prêt à recevoir les connexions
+```
+
+### 2️⃣ Phase Bundler (Mode Standalone)
+```
+1. Onglet Bundler
+2. IP Listener: 192.168.1.40 (votre IP)
+3. Port: 4444
+4. Obfuscation: Niveau 5 (MAX)
+5. Cliquer sur "Build Payload"
+6. Attendre 30-60 secondes
+7. Récupérer dist/c2_payload ou dist/c2_payload.exe
+```
+
+### 3️⃣ Phase Bundler (Mode Patch)
+```
+1. Onglet Bundler
+2. IP Listener: 192.168.1.40
+3. Port: 4444
+4. Obfuscation: Niveau 5
+5. ✅ Cocher "Patch Mode"
+6. Browse → Sélectionner ChromeSetup.exe
+7. Cliquer sur "Build Payload"
+8. Attendre 30-60 secondes
+9. Récupérer dist/ChromeSetup.exe (patché)
+```
+
+### 4️⃣ Phase Déploiement
+```
+1. Transférer l'exécutable vers la machine cible (avec autorisation)
+2. Exécuter sur la cible
+3. Retour automatique vers le listener
+```
+
+### 5️⃣ Phase Contrôle
+```
+1. Onglet Client → Popup de connexion automatique
+2. Sélectionner la victime dans la liste
+3. Utiliser les boutons Quick Actions ou commandes manuelles
+4. Screenshots → ~/pupy_artifacts/screenshots/
+5. Keylogger → ~/pupy_artifacts/keylogs/
+6. Downloads → ~/pupy_artifacts/downloads/
+```
+
+---
+
+## 🛡️ Techniques d'Obfuscation
+
+| Niveau | Techniques | Délai |
+|--------|-----------|-------|
+| 1 | Base64 | Aucun |
+| 2 | XOR + Base64 | 1-3s |
+| 3 | XOR + Base64 + Sandbox Detection | 5-15s |
+| 4 | Dynamic Imports + XOR | 5-15s |
+| 5 | **EXTREME** : Anti-debugging + Analysis Detection + Long delay | 60-300s |
+
+**Niveau 5 détecte** : IDA, Ghidra, OllyDbg, WinDbg, x64dbg, Wireshark, Burp, Fiddler, VirtualBox, VMware, QEMU
+
+---
+
+## 📊 Configuration Système
+
+| Composant | Requis |
 |-----------|--------|
-| XOR Encryption | ✅ Integrated |
-| Base64 Encoding | ✅ Integrated |
-| String Obfuscation | ✅ Integrated |
-| Sandbox Detection | ✅ Integrated |
-| Anti-Debugging | ✅ Integrated |
-| Timing Jitter | ✅ Integrated |
-| Process Injection | ✅ Integrated |
-| Polymorphism | ✅ Integrated |
+| OS | macOS (arm64) ou Windows |
+| Python | 3.12+ |
+| PyInstaller | 6.16.0+ |
+| RAM | 4 GB minimum |
+| Storage | 500 MB pour dépendances |
+| Environnement | `/Users/kalilbelgoumri/Desktop/pupy_env` |
 
 ---
 
-## 📊 System Requirements
+## 🔄 Compilation Cross-Platform
 
-| Component | Requirement |
-|-----------|-------------|
-| OS | macOS Tahoe or later |
-| Python | 3.8+ |
-| RAM | 4 GB minimum |
-| Storage | 500 MB for dependencies |
-| Network | Internet access for Pupy |
+### macOS → macOS ✅
+```bash
+python src/c2_bundler_simple.py
+# Résultat: dist/c2_payload (Mach-O arm64)
+```
+
+### macOS → Windows ❌ (Local)
+PyInstaller ne peut pas cross-compiler. Utiliser GitHub Actions :
+
+1. Push vers le repo
+2. Workflow `.github/workflows/build-windows-pe.yml` démarre automatiquement
+3. Télécharger l'artifact `c2-payload-windows.exe`
+
+### Windows → Windows ✅
+```cmd
+python src\c2_bundler_simple.py
+# Résultat: dist\c2_payload.exe (PE)
+```
 
 ---
 
@@ -371,39 +390,66 @@ hdiutil create -volname "Pupy C2 Manager" \
 
 ---
 
-## 📈 Performance & Optimization
+## 📈 Performances
 
-- **Victim list auto-refresh**: Every 5 seconds
-- **Log size limit**: 10,000 characters (auto-trim)
-- **Memory usage**: ~150-200 MB
-- **CPU usage**: Minimal when idle
-
----
-
-## 🚀 Future Enhancements
-
-- [ ] Pupy WebSocket integration
-- [ ] SSL/TLS support
-- [ ] Encrypted communication
-- [ ] Multi-listener support
-- [ ] Advanced victim filtering
-- [ ] Automated exploitation modules
-- [ ] Real-time forensics
-- [ ] Team collaboration features
+- **Listener** : Multi-clients simultanés
+- **Payload** : 8-15 MB (standalone), +10-15 MB (patch mode)
+- **Artifacts** : Sauvegarde automatique organisée par catégorie
+- **Logs** : Auto-trim à 10 000 caractères
 
 ---
 
-## 📝 License
+## ✅ Statut Actuel
 
-**Authorized Use Only**
-
-This application is designed for authorized penetration testing and security research only. Unauthorized access or use is strictly prohibited and may violate applicable laws.
+| Fonctionnalité | Statut |
+|----------------|--------|
+| Standalone Payload | ✅ Opérationnel |
+| Patch Mode | ✅ Opérationnel |
+| Obfuscation Niv. 1-5 | ✅ Opérationnel |
+| Listener TCP | ✅ Opérationnel |
+| Screenshot | ✅ Opérationnel |
+| Keylogger | ✅ Opérationnel |
+| Download/Upload | ✅ Opérationnel |
+| Quick Actions | ✅ Opérationnel |
+| Artifact Management | ✅ Opérationnel |
+| GitHub Actions (Windows PE) | ✅ Opérationnel |
 
 ---
 
-## 👤 Author
+## 🚀 Améliorations Futures
 
-Security Research Project - macOS Edition
+- [ ] Support SSL/TLS pour communication chiffrée
+- [ ] Multi-listener simultanés
+- [ ] Filtrage avancé des victimes
+- [ ] Persistence automatique
+- [ ] Module de lateral movement
+- [ ] Interface web optionnelle
+
+---
+
+## ⚖️ Avertissement Légal
+
+**UTILISATION AUTORISÉE UNIQUEMENT**
+
+Cette application est conçue EXCLUSIVEMENT pour :
+- ✅ Tests de sécurité autorisés (pentest avec accord écrit)
+- ✅ Recherche en cybersécurité dans un environnement contrôlé
+- ✅ Formation en sécurité informatique
+
+**INTERDICTIONS STRICTES :**
+- ❌ Utilisation sans autorisation écrite
+- ❌ Déploiement sur systèmes tiers
+- ❌ Distribution malveillante
+- ❌ Violation de la vie privée
+
+**L'utilisation non autorisée constitue un DÉLIT PÉNAL** dans la plupart des juridictions.
+
+---
+
+## 👤 Auteur
+
+Projet C2 Framework - Edition macOS  
+Version 2.0.0 - Novembre 2025
 
 ---
 
