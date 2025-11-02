@@ -364,7 +364,7 @@ class C2Bundler:
             "        log_file = os.path.join(temp_dir, 'c2_wrapper.log')",
             "        ts = time.strftime('%Y-%m-%d %H:%M:%S')",
             "        with open(log_file, 'a', encoding='utf-8') as f:",
-            "            f.write('[' + ts + '] ' + str(msg) + '\n')",
+            "            f.write('[' + ts + '] ' + str(msg) + os.linesep)",
             "        print('[WRAPPER] ' + str(msg))",
             "    except Exception as log_exc:",
             "        try:",
