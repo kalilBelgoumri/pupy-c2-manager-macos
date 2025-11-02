@@ -1,7 +1,7 @@
 {
   "listener_ip": "192.168.1.40",
-  "listener_port": 99,
+  "listener_port": 4444,
   "obfuscation_level": 2,
   "platform": "windows",
-  "timestamp": "2025-11-02T14:09:50.373288"
+  "timestamp": "2025-11-02T14:13:48.900621"
 }
