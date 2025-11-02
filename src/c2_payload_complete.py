@@ -289,9 +289,10 @@ if __name__ == '__main__':
         """Niveau 1: Base64"""
         encoded = base64.b64encode(code.encode()).decode()
         return f"""
-import base64
+import base64, sys, os
 code = base64.b64decode('{encoded}').decode()
-exec(code, {{}})
+g = {{'__name__': '__main__', 'sys': sys, 'os': os}}
+exec(code, g)
 """
 
     def obfuscate_level_2(self, code: str) -> str:
@@ -303,12 +304,13 @@ exec(code, {{}})
         delay = random.randint(1, 3)
 
         return f"""
-import base64, time
+import base64, time, sys, os
 time.sleep({delay})
 key = {key}
 xored = base64.b64decode('{encoded}')
 code = ''.join(chr(b ^ key) for b in xored)
-exec(code, {{}})
+g = {{'__name__': '__main__', 'sys': sys, 'os': os}}
+exec(code, g)
 """
 
     def obfuscate_level_3(self, code: str) -> str:
@@ -335,7 +337,8 @@ time.sleep({delay})
 key = {key}
 xored = base64.b64decode('{encoded}')
 code = ''.join(chr(b ^ key) for b in xored)
-exec(code, {{}})
+g = {{'__name__': '__main__', 'sys': sys, 'os': os}}
+exec(code, g)
 """
 
     def obfuscate_level_4(self, code: str) -> str:
@@ -355,7 +358,8 @@ time.sleep({delay})
 key = {key}
 xored = base64.b64decode('{encoded}')
 code = ''.join(chr(b ^ key) for b in xored)
-exec(code, {{}})
+g = {{'__name__': '__main__', 'sys': sys, 'os': os}}
+exec(code, g)
 """
 
     def obfuscate_level_5(self, code: str) -> str:
@@ -382,7 +386,8 @@ time.sleep({delay})
 key = {key}
 xored = base64.b64decode('{encoded}')
 code = ''.join(chr(b ^ key) for b in xored)
-exec(code, {{}})
+g = {{'__name__': '__main__', 'sys': sys, 'os': os}}
+exec(code, g)
 """
 
     def generate(self) -> str:
