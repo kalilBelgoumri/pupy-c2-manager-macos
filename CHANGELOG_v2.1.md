@@ -2,6 +2,32 @@
 
 ## 🔧 Correctifs Récents (2 nov 2025)
 
+### 🔥 VRAIE SOLUTION - Écran noir / Fenêtre se ferme
+
+**Problème principal** : L'exe s'ouvre et se ferme immédiatement (écran noir flash)
+
+**Cause racine** :
+1. Le payload essaye de se connecter UNE SEULE FOIS
+2. Si échec (firewall, listener pas démarré, mauvaise IP), il se termine immédiatement
+3. `--windowed` masque toutes les erreurs
+4. Pas de retry, pas de logging, impossible de débugger
+
+**Solutions implémentées** :
+- ✅ **Retry loop** : 10 tentatives avec délai de 5 secondes entre chaque
+- ✅ **Reconnexion auto** : Si connexion perdue, réessaye automatiquement
+- ✅ **Mode DEBUG** : Écrit dans `%TEMP%/c2_debug.log` sur Windows
+- ✅ **Détachement console** : `FreeConsole()` pour tourner en arrière-plan
+- ✅ **--windowed réactivé** : Pour production (pas de fenêtre visible)
+
+**Comment débugger maintenant** :
+```
+1. Sur Windows : Exécute le payload
+2. Va dans C:\Users\TON_USER\AppData\Local\Temp\
+3. Ouvre c2_debug.log
+4. Tu verras : "Attempting connection to 192.168.1.40:4444"
+5. Tu verras : "Connection failed: [raison exacte]"
+```
+
 ### ANALYSE COMPLÈTE - Payload ne se connecte pas
 
 **Diagnostic complet** :

