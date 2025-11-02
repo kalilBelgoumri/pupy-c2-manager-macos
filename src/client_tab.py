@@ -247,6 +247,16 @@ class ClientTab(QWidget):
         self.clients_list.addItem(item)
         self.output_text.append(f"\n[+] Client connected: {client_ip}")
         self.output_text.append(f"    {info}\n")
+        
+        # ALERTE: Nouvelle victime!
+        QMessageBox.information(
+            self, 
+            "🔔 Nouvelle Victime!", 
+            f"Client connecté!\n\n"
+            f"IP: {client_ip}\n"
+            f"Info: {info}\n\n"
+            f"Vous avez maintenant {self.clients_list.count()} victime(s) connectée(s)."
+        )
 
     def on_client_selected(self, item):
         """Select client"""
