@@ -37,7 +37,7 @@ from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer
 from PyQt5.QtGui import QIcon, QFont, QColor
 
 from bundler_tab import BundlerTab
-from victims_tab import VictimsTab
+from client_tab import ClientTab
 from settings_tab import SettingsTab
 from logs_tab import LogsTab
 
@@ -70,12 +70,12 @@ class PupyC2Manager(QMainWindow):
         self.tabs = QTabWidget()
 
         self.bundler_tab = BundlerTab(self)
-        self.victims_tab = VictimsTab(self)
+        self.client_tab = ClientTab(self)
         self.settings_tab = SettingsTab(self)
         self.logs_tab = LogsTab(self)
 
         self.tabs.addTab(self.bundler_tab, "📦 Bundler")
-        self.tabs.addTab(self.victims_tab, "👥 Victims")
+        self.tabs.addTab(self.client_tab, "👥 Client")
         self.tabs.addTab(self.logs_tab, "📋 Logs")
         self.tabs.addTab(self.settings_tab, "⚙️ Settings")
 

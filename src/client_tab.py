@@ -159,6 +159,10 @@ class ClientTab(QWidget):
         self.start_listener_btn = QPushButton("▶️ Start Listener")
         self.start_listener_btn.clicked.connect(self.start_listener)
         listener_layout.addWidget(self.start_listener_btn)
+        
+        # Status label
+        self.listener_status_label = QLabel("⚫ Stopped")
+        listener_layout.addWidget(self.listener_status_label)
 
         listener_group.setLayout(listener_layout)
         layout.addWidget(listener_group)
@@ -166,10 +170,28 @@ class ClientTab(QWidget):
         # === Clients List ===
         clients_group = QGroupBox("👥 Connected Clients")
         clients_layout = QVBoxLayout()
+        
+        # Filter
+        filter_layout = QHBoxLayout()
+        filter_layout.addWidget(QLabel("🔍 Filter:"))
+        self.filter_input = QLineEdit()
+        self.filter_input.setPlaceholderText("hostname, platform, user...")
+        self.filter_input.textChanged.connect(self.filter_clients)
+        filter_layout.addWidget(self.filter_input)
+        
+        self.refresh_btn = QPushButton("🔄 Refresh")
+        self.refresh_btn.clicked.connect(self.refresh_clients_list)
+        filter_layout.addWidget(self.refresh_btn)
+        
+        clients_layout.addLayout(filter_layout)
 
         self.clients_list = QListWidget()
         self.clients_list.itemClicked.connect(self.on_client_selected)
         clients_layout.addWidget(self.clients_list)
+        
+        # Stats
+        self.clients_stats_label = QLabel("Total: 0 clients")
+        clients_layout.addWidget(self.clients_stats_label)
 
         clients_group.setLayout(clients_layout)
         layout.addWidget(clients_group)
@@ -255,6 +277,8 @@ class ClientTab(QWidget):
             self.listener_thread.stop()
             self.listener_thread = None
             self.start_listener_btn.setText("▶️ Start Listener")
+            self.listener_status_label.setText("⚫ Stopped")
+            self.listener_status_label.setStyleSheet("color: red;")
             self.output_text.append("[*] Listener stopped")
             return
 
@@ -265,13 +289,17 @@ class ClientTab(QWidget):
         self.listener_thread.start()
 
         self.start_listener_btn.setText("⏹️ Stop Listener")
+        self.listener_status_label.setText(f"🟢 Listening on port {port}")
+        self.listener_status_label.setStyleSheet("color: green; font-weight: bold;")
         self.output_text.append(f"[+] Listener started on port {port}")
 
     def on_client_connected(self, client_ip, info):
         """Client connected"""
         item = QListWidgetItem(f"✅ {client_ip} - {info}")
         item.setData(Qt.UserRole, client_ip)
+        item.setData(Qt.UserRole + 1, info)  # Store info for filtering
         self.clients_list.addItem(item)
+        self.update_clients_stats()
         self.output_text.append(f"\n[+] Client connected: {client_ip}")
         self.output_text.append(f"    {info}\n")
 
@@ -536,3 +564,38 @@ class ClientTab(QWidget):
         """Utility to build artifact storage path."""
         safe_filename = filename or "artifact.bin"
         return self.artifacts_root / category / safe_filename
+    
+    def filter_clients(self):
+        """Filter clients list based on search text."""
+        search_text = self.filter_input.text().lower()
+        
+        for i in range(self.clients_list.count()):
+            item = self.clients_list.item(i)
+            client_info = item.data(Qt.UserRole + 1) or ""
+            client_ip = item.data(Qt.UserRole) or ""
+            
+            # Search in IP and info
+            full_text = f"{client_ip} {client_info}".lower()
+            
+            if search_text in full_text:
+                item.setHidden(False)
+            else:
+                item.setHidden(True)
+        
+        self.update_clients_stats()
+    
+    def refresh_clients_list(self):
+        """Refresh the clients list display."""
+        self.filter_input.clear()
+        self.update_clients_stats()
+        self.output_text.append("[*] Clients list refreshed")
+    
+    def update_clients_stats(self):
+        """Update clients statistics label."""
+        total = self.clients_list.count()
+        visible = sum(1 for i in range(total) if not self.clients_list.item(i).isHidden())
+        
+        if total == visible:
+            self.clients_stats_label.setText(f"Total: {total} client(s)")
+        else:
+            self.clients_stats_label.setText(f"Showing: {visible}/{total} client(s)")
