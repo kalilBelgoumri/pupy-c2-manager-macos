@@ -94,8 +94,9 @@ class C2Bundler:
         # --windowed = pas de console (stealth) mais masque les erreurs
         # Pour debug: désactiver --windowed et activer debug_mode dans payload
         if platform == "windows":
-            # On ajoute --windowed sur Windows pour que ça tourne en arrière-plan
-            cmd.extend(["--windowed"])
+            # IMPORTANT: Ne PAS ajouter --windowed pour que l'utilisateur voit les erreurs de debug
+            # cmd.extend(["--windowed"])
+            pass
 
         # Add resources folder if patch mode
         if add_resources and self.resources_dir.exists():
