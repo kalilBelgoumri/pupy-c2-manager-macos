@@ -30,7 +30,11 @@ class C2Bundler:
         self.resources_dir.mkdir(exist_ok=True)
 
     def generate_payload(
-        self, listener_ip: str, listener_port: int, obfuscation_level: int, debug_mode: bool = False
+        self,
+        listener_ip: str,
+        listener_port: int,
+        obfuscation_level: int,
+        debug_mode: bool = False,
     ) -> str:
         """Génère le payload C2 complet"""
         sys.path.insert(0, str(Path(__file__).parent))
@@ -44,14 +48,13 @@ class C2Bundler:
 
         generator = C2PayloadGenerator(listener_ip, listener_port, obfuscation_level)
         payload_code = generator.generate()
-        
+
         # Enable debug mode if requested
         if debug_mode:
             payload_code = payload_code.replace(
-                "self.debug_mode = False",
-                "self.debug_mode = True"
+                "self.debug_mode = False", "self.debug_mode = True"
             )
-        
+
         print(f"[+] Payload generated ({len(payload_code)} bytes)")
         return payload_code
 
